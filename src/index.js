@@ -3,7 +3,6 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // CORS 헤더
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -24,19 +23,6 @@ export default {
 
       if (path === '/create') {
         return new Response(getCreatePage(), {
-          headers: { 'Content-Type': 'text/html; charset=utf-8' },
-        });
-      }
-
-      // 퀴즈 페이지 (6자리 코드)
-      const quizMatch = path.match(/^\/q\/([a-zA-Z0-9]{6})$/);
-      if (quizMatch) {
-        const quizId = quizMatch[1];
-        const quiz = await env.QUIZ_KV.get(`quiz:${quizId}`, 'json');
-        if (!quiz) {
-          return new Response('퀴즈를 찾을 수 없습니다.', { status: 404 });
-        }
-        return new Response(getQuizPage(quiz, quizId), {
           headers: { 'Content-Type': 'text/html; charset=utf-8' },
         });
       }
@@ -80,7 +66,29 @@ export default {
         });
       }
 
-      return new Response('Not Found', { status: 404 });
+      // 퀴즈 페이지 - /q/:id 또는 /:id 둘 다 지원
+      const quizMatchLong = path.match(/^\/q\/([a-zA-Z0-9]{6})$/);
+      const quizMatchShort = path.match(/^\/([a-zA-Z0-9]{6})$/);
+      const quizMatch = quizMatchLong || quizMatchShort;
+      
+      if (quizMatch) {
+        const quizId = quizMatch[1];
+        const quiz = await env.QUIZ_KV.get(`quiz:${quizId}`, 'json');
+        if (!quiz) {
+          return new Response(get404Page(), {
+            status: 404,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+          });
+        }
+        return new Response(getQuizPage(quiz, quizId), {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        });
+      }
+
+      return new Response(get404Page(), {
+        status: 404,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
     } catch (error) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
@@ -90,7 +98,6 @@ export default {
   },
 };
 
-// HTML 이스케이프 함수 (XSS 방지)
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -101,7 +108,6 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-// 6자리 랜덤 ID 생성
 function generateId() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
@@ -111,11 +117,9 @@ function generateId() {
   return result;
 }
 
-// 퀴즈 생성
 async function createQuiz(request, env, corsHeaders) {
   const data = await request.json();
 
-  // 서버 사이드 validation
   if (!data.title || typeof data.title !== 'string' || data.title.trim().length === 0) {
     return new Response(JSON.stringify({ error: '퀴즈 제목이 필요합니다.' }), {
       status: 400,
@@ -175,7 +179,6 @@ async function createQuiz(request, env, corsHeaders) {
   let quizId;
   let attempts = 0;
 
-  // 중복되지 않는 ID 찾기
   do {
     quizId = generateId();
     const existing = await env.QUIZ_KV.get(`quiz:${quizId}`);
@@ -199,7 +202,6 @@ async function createQuiz(request, env, corsHeaders) {
   });
 }
 
-// 퀴즈 조회
 async function getQuiz(quizId, env, corsHeaders) {
   const quiz = await env.QUIZ_KV.get(`quiz:${quizId}`, 'json');
   if (!quiz) {
@@ -209,7 +211,6 @@ async function getQuiz(quizId, env, corsHeaders) {
     });
   }
 
-  // 정답은 숨김
   const quizWithoutAnswers = {
     ...quiz,
     questions: quiz.questions.map((q) => ({
@@ -223,7 +224,6 @@ async function getQuiz(quizId, env, corsHeaders) {
   });
 }
 
-// 이미지 업로드
 async function uploadImage(request, env, corsHeaders) {
   const formData = await request.formData();
   const file = formData.get('file');
@@ -247,7 +247,6 @@ async function uploadImage(request, env, corsHeaders) {
   });
 }
 
-// 퀴즈 제출
 async function submitQuiz(request, env, corsHeaders) {
   const data = await request.json();
   const { quizId, answers } = data;
@@ -260,7 +259,6 @@ async function submitQuiz(request, env, corsHeaders) {
     });
   }
 
-  // 채점
   let correctCount = 0;
   const results = quiz.questions.map((q, i) => {
     const isCorrect = answers[i] === q.correctAnswer;
@@ -276,19 +274,16 @@ async function submitQuiz(request, env, corsHeaders) {
   const score = correctCount;
   const total = quiz.questions.length;
 
-  // 통계 업데이트
   let stats = await env.QUIZ_KV.get(`stats:${quizId}`, 'json') || { submissions: [], totalCount: 0 };
   stats.submissions.push(score);
   stats.totalCount++;
 
-  // 상위 1000개만 유지
   if (stats.submissions.length > 1000) {
     stats.submissions = stats.submissions.slice(-1000);
   }
 
   await env.QUIZ_KV.put(`stats:${quizId}`, JSON.stringify(stats));
 
-  // 상위 % 계산 (높은 점수가 상위)
   const betterCount = stats.submissions.filter((s) => s > score).length;
   const percentile = Math.round(((betterCount + 1) / stats.submissions.length) * 100);
 
@@ -306,7 +301,6 @@ async function submitQuiz(request, env, corsHeaders) {
   );
 }
 
-// 통계 조회
 async function getStats(quizId, env, corsHeaders) {
   const stats = await env.QUIZ_KV.get(`stats:${quizId}`, 'json');
   if (!stats) {
@@ -320,68 +314,237 @@ async function getStats(quizId, env, corsHeaders) {
   });
 }
 
-// 홈페이지
+const baseStyles = `
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --primary-light: #818cf8;
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --text: #1f2937;
+    --text-secondary: #6b7280;
+    --border: #e5e7eb;
+    --success: #10b981;
+    --error: #ef4444;
+    --radius: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+    --shadow-lg: 0 4px 20px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.06);
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  .container {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 16px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+  }
+  .btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+  }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover {
+    background: var(--bg);
+    border-color: var(--text-secondary);
+  }
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 24px;
+  }
+  .input, textarea, select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    background: var(--surface);
+  }
+  .input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+  label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .form-group {
+    margin-bottom: 20px;
+  }
+`;
+
+function get404Page() {
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>페이지를 찾을 수 없습니다 - open-theQUIZ</title>
+  <style>${baseStyles}
+    .error-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+    .error-icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+    }
+    .error-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .error-desc {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="error-page">
+    <div>
+      <div class="error-icon">🔍</div>
+      <h1 class="error-title">페이지를 찾을 수 없습니다</h1>
+      <p class="error-desc">요청하신 퀴즈가 존재하지 않거나 삭제되었습니다.</p>
+      <a href="/" class="btn btn-primary">홈으로 돌아가기</a>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
 function getHomePage() {
   return `<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>open-theQUIZ</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  <title>open-theQUIZ - 나만의 퀴즈 만들기</title>
+  <style>${baseStyles}
+    .hero {
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-    }
-    .container {
       text-align: center;
-      padding: 40px;
+      padding: 48px 24px;
     }
-    h1 {
-      color: white;
-      font-size: 3rem;
-      margin-bottom: 1rem;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    .logo {
+      font-size: 48px;
+      margin-bottom: 16px;
     }
-    p {
-      color: rgba(255,255,255,0.9);
-      font-size: 1.2rem;
-      margin-bottom: 2rem;
+    .title {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
     }
-    .btn {
-      display: inline-block;
-      padding: 16px 48px;
-      background: white;
-      color: #667eea;
-      text-decoration: none;
-      border-radius: 50px;
-      font-size: 1.2rem;
+    .subtitle {
+      font-size: 18px;
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+      max-width: 400px;
+    }
+    .hero-btn {
+      padding: 16px 40px;
+      font-size: 17px;
       font-weight: 600;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      border-radius: 100px;
+      box-shadow: var(--shadow-lg);
     }
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    .features {
+      display: flex;
+      gap: 32px;
+      margin-top: 64px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .feature {
+      text-align: center;
+      max-width: 160px;
+    }
+    .feature-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+    .feature-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .feature-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🎯 open-theQUIZ</h1>
-    <p>나만의 퀴즈를 만들고 공유하세요!</p>
-    <a href="/create" class="btn">퀴즈 만들기</a>
+  <div class="hero">
+    <div class="logo">📝</div>
+    <h1 class="title">open-theQUIZ</h1>
+    <p class="subtitle">나만의 퀴즈를 만들고 친구들과 공유하세요. 간단하고 빠르게.</p>
+    <a href="/create" class="btn btn-primary hero-btn">퀴즈 만들기</a>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">✏️</div>
+        <div class="feature-title">쉬운 제작</div>
+        <div class="feature-desc">몇 번의 클릭으로 퀴즈 완성</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔗</div>
+        <div class="feature-title">간편 공유</div>
+        <div class="feature-desc">링크 하나로 바로 공유</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">결과 확인</div>
+        <div class="feature-desc">순위와 통계를 한눈에</div>
+      </div>
+    </div>
   </div>
 </body>
 </html>`;
 }
 
-// 퀴즈 생성 페이지
 function getCreatePage() {
   return `<!DOCTYPE html>
 <html lang="ko">
@@ -389,81 +552,63 @@ function getCreatePage() {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>퀴즈 만들기 - open-theQUIZ</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f5f5;
-      min-height: 100vh;
-      padding: 20px;
+  <style>${baseStyles}
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
     }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    header {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-    header h1 {
-      color: #667eea;
-      font-size: 2rem;
-    }
-    .card {
-      background: white;
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    .form-group {
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
+    .header-title {
+      font-size: 18px;
       font-weight: 600;
-      margin-bottom: 8px;
-      color: #333;
     }
-    input[type="text"], textarea {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 1rem;
-      transition: border-color 0.2s;
+    .back-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
     }
-    input[type="text"]:focus, textarea:focus {
-      outline: none;
-      border-color: #667eea;
+    .back-link:hover {
+      color: var(--text);
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
     }
     .thumbnail-upload {
-      border: 2px dashed #e0e0e0;
-      border-radius: 8px;
-      padding: 40px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
       text-align: center;
       cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
+      transition: all 0.15s;
+      color: var(--text-secondary);
     }
     .thumbnail-upload:hover {
-      border-color: #667eea;
-      background: #f8f8ff;
+      border-color: var(--primary);
+      color: var(--primary);
     }
     .thumbnail-upload.has-image {
-      padding: 10px;
+      padding: 8px;
+      border-style: solid;
     }
     .thumbnail-upload img {
       max-width: 100%;
-      max-height: 200px;
-      border-radius: 4px;
+      max-height: 160px;
+      border-radius: 8px;
     }
     .question-card {
-      background: #fafafa;
-      border: 1px solid #e0e0e0;
-      border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       padding: 20px;
       margin-bottom: 16px;
-      position: relative;
     }
     .question-header {
       display: flex;
@@ -471,45 +616,45 @@ function getCreatePage() {
       align-items: center;
       margin-bottom: 16px;
     }
-    .question-number {
-      font-weight: 700;
-      color: #667eea;
-      font-size: 1.1rem;
+    .question-num {
+      font-weight: 600;
+      color: var(--primary);
     }
-    .delete-question {
-      background: #ff4757;
-      color: white;
+    .delete-btn {
+      background: none;
       border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
+      color: var(--text-secondary);
       cursor: pointer;
-      font-size: 0.9rem;
+      padding: 4px 8px;
+      font-size: 13px;
     }
-    .image-upload-area {
-      border: 2px dashed #e0e0e0;
+    .delete-btn:hover {
+      color: var(--error);
+    }
+    .image-area {
+      border: 2px dashed var(--border);
       border-radius: 8px;
-      padding: 20px;
+      padding: 16px;
       text-align: center;
-      margin-bottom: 16px;
       cursor: pointer;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: var(--text-secondary);
     }
-    .image-upload-area:hover {
-      border-color: #667eea;
+    .image-area:hover {
+      border-color: var(--primary);
     }
     .images-preview {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 10px;
+      gap: 8px;
+      margin-top: 12px;
     }
     .image-item {
       position: relative;
-      width: 100px;
-      height: 100px;
+      width: 72px;
+      height: 72px;
       cursor: grab;
-    }
-    .image-item.dragging {
-      opacity: 0.5;
     }
     .image-item img {
       width: 100%;
@@ -517,164 +662,153 @@ function getCreatePage() {
       object-fit: cover;
       border-radius: 8px;
     }
-    .image-item .image-number {
+    .image-item .img-num {
       position: absolute;
-      top: 4px;
-      left: 4px;
-      background: #667eea;
+      top: -6px;
+      left: -6px;
+      background: var(--primary);
       color: white;
-      width: 24px;
-      height: 24px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
+      font-size: 11px;
+      font-weight: 600;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.8rem;
-      font-weight: 600;
     }
-    .image-item .remove-image {
+    .image-item .img-remove {
       position: absolute;
-      top: 4px;
-      right: 4px;
-      background: #ff4757;
+      top: -6px;
+      right: -6px;
+      background: var(--error);
       color: white;
       border: none;
-      width: 24px;
-      height: 24px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
+      font-size: 14px;
       cursor: pointer;
-      font-size: 1rem;
       line-height: 1;
-    }
-    .answers-section {
-      margin-top: 16px;
     }
     .answer-item {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       margin-bottom: 10px;
     }
     .answer-item input[type="radio"] {
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
     }
     .answer-item input[type="text"] {
       flex: 1;
     }
     .answer-item .remove-answer {
-      background: #ff4757;
-      color: white;
+      background: none;
       border: none;
-      padding: 8px 12px;
-      border-radius: 6px;
+      color: var(--text-secondary);
       cursor: pointer;
+      padding: 4px;
+      font-size: 18px;
     }
-    .add-answer {
-      background: #f0f0f0;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      margin-top: 10px;
+    .answer-item .remove-answer:hover {
+      color: var(--error);
     }
-    .add-answer:hover {
-      background: #e0e0e0;
+    .add-btn {
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      color: var(--text-secondary);
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
     }
-    .add-question {
+    .add-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .add-question-btn {
       width: 100%;
       padding: 16px;
-      background: #667eea;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-size: 1.1rem;
-      cursor: pointer;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      color: var(--text-secondary);
     }
-    .add-question:hover {
-      background: #5a6fd6;
+    .add-question-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
     }
     .submit-btn {
       width: 100%;
-      padding: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-size: 1.3rem;
+      padding: 16px;
+      font-size: 16px;
       font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    .submit-btn:hover {
-      transform: scale(1.02);
-    }
-    .submit-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
     }
     .modal {
       display: none;
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       background: rgba(0,0,0,0.5);
       align-items: center;
       justify-content: center;
+      padding: 24px;
       z-index: 1000;
     }
     .modal.active {
       display: flex;
     }
     .modal-content {
-      background: white;
-      padding: 30px;
-      border-radius: 16px;
-      text-align: center;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 32px;
       max-width: 400px;
-      width: 90%;
+      width: 100%;
+      text-align: center;
     }
-    .modal-content h2 {
-      color: #667eea;
-      margin-bottom: 20px;
+    .modal-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
     }
-    .modal-content .quiz-url {
-      background: #f5f5f5;
-      padding: 15px;
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .modal-desc {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    .quiz-url {
+      background: var(--bg);
+      padding: 12px 16px;
       border-radius: 8px;
-      word-break: break-all;
-      margin-bottom: 20px;
       font-family: monospace;
-    }
-    .copy-btn {
-      background: #667eea;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
+      font-size: 14px;
+      word-break: break-all;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <header>
-      <h1>🎯 퀴즈 만들기</h1>
-    </header>
+    <div class="header">
+      <a href="/" class="back-link">← 홈으로</a>
+      <span class="header-title">퀴즈 만들기</span>
+      <span style="width: 60px;"></span>
+    </div>
 
-    <div class="card">
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="section-title">기본 정보</div>
       <div class="form-group">
         <label>퀴즈 제목</label>
-        <input type="text" id="quizTitle" placeholder="예: 역사 상식 퀴즈">
+        <input type="text" class="input" id="quizTitle" placeholder="예: 역사 상식 퀴즈">
       </div>
-      <div class="form-group">
-        <label>미리보기 이미지 (선택)</label>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>썸네일 이미지 (선택)</label>
         <div class="thumbnail-upload" id="thumbnailUpload">
           <span>클릭하여 이미지 업로드</span>
         </div>
@@ -682,19 +816,20 @@ function getCreatePage() {
       </div>
     </div>
 
+    <div class="section-title">문제 목록</div>
     <div id="questionsContainer"></div>
 
-    <button class="add-question" onclick="addQuestion()">+ 문제 추가</button>
-
-    <button class="submit-btn" onclick="submitQuiz()" id="submitBtn">퀴즈 생성하기</button>
+    <button class="btn add-question-btn" onclick="addQuestion()">+ 문제 추가</button>
+    <button class="btn btn-primary submit-btn" onclick="submitQuiz()" id="submitBtn">퀴즈 생성하기</button>
   </div>
 
   <div class="modal" id="successModal">
     <div class="modal-content">
-      <h2>🎉 퀴즈가 생성되었습니다!</h2>
-      <p style="margin-bottom: 15px;">아래 링크를 공유하세요:</p>
+      <div class="modal-icon">🎉</div>
+      <div class="modal-title">퀴즈가 생성되었습니다!</div>
+      <div class="modal-desc">아래 링크를 복사해서 공유하세요.</div>
       <div class="quiz-url" id="quizUrl"></div>
-      <button class="copy-btn" onclick="copyUrl()">URL 복사</button>
+      <button class="btn btn-primary" onclick="copyUrl()" style="width: 100%;">링크 복사하기</button>
     </div>
   </div>
 
@@ -702,10 +837,8 @@ function getCreatePage() {
     let questionCount = 0;
     let thumbnailUrl = null;
 
-    // 초기 문제 추가
     addQuestion();
 
-    // 썸네일 업로드
     document.getElementById('thumbnailUpload').addEventListener('click', () => {
       document.getElementById('thumbnailInput').click();
     });
@@ -718,10 +851,7 @@ function getCreatePage() {
       formData.append('file', file);
 
       try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        });
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
         const data = await res.json();
         if (data.success) {
           thumbnailUrl = data.imageUrl;
@@ -737,82 +867,73 @@ function getCreatePage() {
     function addQuestion() {
       questionCount++;
       const container = document.getElementById('questionsContainer');
-      const questionHtml = \`
-        <div class="question-card" id="question-\${questionCount}" data-question-id="\${questionCount}">
+      const html = \`
+        <div class="question-card" id="question-\${questionCount}">
           <div class="question-header">
-            <span class="question-number">문제 \${questionCount}</span>
-            <button class="delete-question" onclick="deleteQuestion(\${questionCount})">삭제</button>
+            <span class="question-num">문제 \${questionCount}</span>
+            <button class="delete-btn" onclick="deleteQuestion(\${questionCount})">삭제</button>
           </div>
           <div class="form-group">
             <label>문제 내용</label>
-            <textarea rows="2" placeholder="문제를 입력하세요" class="question-text"></textarea>
+            <textarea class="input question-text" rows="2" placeholder="문제를 입력하세요"></textarea>
           </div>
           <div class="form-group">
-            <label>이미지 (선택, 여러개 가능)</label>
-            <div class="image-upload-area" onclick="triggerImageUpload(\${questionCount})">
-              클릭하여 이미지 추가
-            </div>
+            <label>이미지 (선택)</label>
+            <div class="image-area" onclick="triggerImageUpload(\${questionCount})">클릭하여 이미지 추가</div>
             <input type="file" class="image-input" accept="image/*" multiple style="display: none;" onchange="handleImageUpload(\${questionCount}, this)">
             <div class="images-preview" id="images-\${questionCount}"></div>
           </div>
-          <div class="answers-section">
-            <label>답안 (정답 선택)</label>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>답안 (정답을 선택하세요)</label>
             <div class="answers-container" id="answers-\${questionCount}">
               <div class="answer-item">
                 <input type="radio" name="correct-\${questionCount}" value="0" checked>
-                <input type="text" placeholder="답안 1">
+                <input type="text" class="input" placeholder="답안 1">
                 <button class="remove-answer" onclick="removeAnswer(this)">×</button>
               </div>
               <div class="answer-item">
                 <input type="radio" name="correct-\${questionCount}" value="1">
-                <input type="text" placeholder="답안 2">
+                <input type="text" class="input" placeholder="답안 2">
                 <button class="remove-answer" onclick="removeAnswer(this)">×</button>
               </div>
             </div>
-            <button class="add-answer" onclick="addAnswer(\${questionCount})">+ 답안 추가</button>
+            <button class="btn add-btn" onclick="addAnswer(\${questionCount})">+ 답안 추가</button>
           </div>
         </div>
       \`;
-      container.insertAdjacentHTML('beforeend', questionHtml);
+      container.insertAdjacentHTML('beforeend', html);
       updateQuestionNumbers();
     }
 
     function deleteQuestion(id) {
-      const question = document.getElementById('question-' + id);
-      if (question) {
-        question.remove();
-        updateQuestionNumbers();
-      }
+      document.getElementById('question-' + id)?.remove();
+      updateQuestionNumbers();
     }
 
     function updateQuestionNumbers() {
-      const questions = document.querySelectorAll('.question-card');
-      questions.forEach((q, i) => {
-        q.querySelector('.question-number').textContent = '문제 ' + (i + 1);
+      document.querySelectorAll('.question-card').forEach((q, i) => {
+        q.querySelector('.question-num').textContent = '문제 ' + (i + 1);
       });
     }
 
     function addAnswer(questionId) {
       const container = document.getElementById('answers-' + questionId);
-      const answerCount = container.querySelectorAll('.answer-item').length;
-      const answerHtml = \`
+      const count = container.querySelectorAll('.answer-item').length;
+      const html = \`
         <div class="answer-item">
-          <input type="radio" name="correct-\${questionId}" value="\${answerCount}">
-          <input type="text" placeholder="답안 \${answerCount + 1}">
+          <input type="radio" name="correct-\${questionId}" value="\${count}">
+          <input type="text" class="input" placeholder="답안 \${count + 1}">
           <button class="remove-answer" onclick="removeAnswer(this)">×</button>
         </div>
       \`;
-      container.insertAdjacentHTML('beforeend', answerHtml);
+      container.insertAdjacentHTML('beforeend', html);
     }
 
     function removeAnswer(btn) {
-      const answerItem = btn.parentElement;
-      const container = answerItem.parentElement;
+      const container = btn.parentElement.parentElement;
       if (container.querySelectorAll('.answer-item').length > 2) {
-        answerItem.remove();
-        // 라디오 값 재정렬
-        const answers = container.querySelectorAll('.answer-item');
-        answers.forEach((a, i) => {
+        btn.parentElement.remove();
+        container.querySelectorAll('.answer-item').forEach((a, i) => {
           a.querySelector('input[type="radio"]').value = i;
         });
       } else {
@@ -821,34 +942,30 @@ function getCreatePage() {
     }
 
     function triggerImageUpload(questionId) {
-      const question = document.getElementById('question-' + questionId);
-      question.querySelector('.image-input').click();
+      document.getElementById('question-' + questionId).querySelector('.image-input').click();
     }
 
     async function handleImageUpload(questionId, input) {
       const files = input.files;
-      const previewContainer = document.getElementById('images-' + questionId);
+      const preview = document.getElementById('images-' + questionId);
 
       for (const file of files) {
         const formData = new FormData();
         formData.append('file', file);
 
         try {
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData
-          });
+          const res = await fetch('/api/upload', { method: 'POST', body: formData });
           const data = await res.json();
           if (data.success) {
-            const imageIndex = previewContainer.querySelectorAll('.image-item').length + 1;
-            const imageHtml = \`
+            const idx = preview.querySelectorAll('.image-item').length + 1;
+            const html = \`
               <div class="image-item" draggable="true" data-url="\${data.imageUrl}">
                 <img src="\${data.imageUrl}" alt="">
-                <span class="image-number">\${imageIndex}</span>
-                <button class="remove-image" onclick="removeImage(this, \${questionId})">×</button>
+                <span class="img-num">\${idx}</span>
+                <button class="img-remove" onclick="removeImage(this, \${questionId})">×</button>
               </div>
             \`;
-            previewContainer.insertAdjacentHTML('beforeend', imageHtml);
+            preview.insertAdjacentHTML('beforeend', html);
             setupDragAndDrop(questionId);
           }
         } catch (err) {
@@ -864,139 +981,91 @@ function getCreatePage() {
     }
 
     function updateImageNumbers(questionId) {
-      const container = document.getElementById('images-' + questionId);
-      const images = container.querySelectorAll('.image-item');
-      images.forEach((img, i) => {
-        img.querySelector('.image-number').textContent = i + 1;
+      document.getElementById('images-' + questionId).querySelectorAll('.image-item').forEach((img, i) => {
+        img.querySelector('.img-num').textContent = i + 1;
       });
     }
 
     function setupDragAndDrop(questionId) {
       const container = document.getElementById('images-' + questionId);
-      const items = container.querySelectorAll('.image-item');
-
-      items.forEach(item => {
-        item.addEventListener('dragstart', (e) => {
-          item.classList.add('dragging');
-          e.dataTransfer.effectAllowed = 'move';
-        });
-
-        item.addEventListener('dragend', () => {
-          item.classList.remove('dragging');
-          updateImageNumbers(questionId);
-        });
-
-        item.addEventListener('dragover', (e) => {
+      container.querySelectorAll('.image-item').forEach(item => {
+        item.ondragstart = () => item.classList.add('dragging');
+        item.ondragend = () => { item.classList.remove('dragging'); updateImageNumbers(questionId); };
+        item.ondragover = (e) => {
           e.preventDefault();
           const dragging = container.querySelector('.dragging');
           if (dragging && dragging !== item) {
             const rect = item.getBoundingClientRect();
-            const midX = rect.left + rect.width / 2;
-            if (e.clientX < midX) {
+            if (e.clientX < rect.left + rect.width / 2) {
               container.insertBefore(dragging, item);
             } else {
               container.insertBefore(dragging, item.nextSibling);
             }
           }
-        });
+        };
       });
     }
 
     async function submitQuiz() {
       const title = document.getElementById('quizTitle').value.trim();
-      if (!title) {
-        alert('퀴즈 제목을 입력하세요.');
-        return;
-      }
+      if (!title) { alert('퀴즈 제목을 입력하세요.'); return; }
 
-      const questionCards = document.querySelectorAll('.question-card');
-      if (questionCards.length === 0) {
-        alert('최소 1개의 문제가 필요합니다.');
-        return;
-      }
+      const cards = document.querySelectorAll('.question-card');
+      if (cards.length === 0) { alert('최소 1개의 문제가 필요합니다.'); return; }
 
       const questions = [];
-      for (const card of questionCards) {
+      for (const card of cards) {
         const text = card.querySelector('.question-text').value.trim();
-        if (!text) {
-          alert('모든 문제의 내용을 입력하세요.');
-          return;
-        }
+        if (!text) { alert('모든 문제의 내용을 입력하세요.'); return; }
 
         const images = [];
-        card.querySelectorAll('.image-item').forEach(img => {
-          images.push(img.dataset.url);
-        });
+        card.querySelectorAll('.image-item').forEach(img => images.push(img.dataset.url));
 
         const answers = [];
         let correctAnswer = 0;
-        let hasEmptyAnswer = false;
-        const answerItems = card.querySelectorAll('.answer-item');
-        for (let i = 0; i < answerItems.length; i++) {
-          const a = answerItems[i];
-          const answerText = a.querySelector('input[type="text"]').value.trim();
-          if (!answerText) {
-            hasEmptyAnswer = true;
-            break;
-          }
-          answers.push(answerText);
-          if (a.querySelector('input[type="radio"]').checked) {
-            correctAnswer = i;
-          }
+        let hasEmpty = false;
+        const items = card.querySelectorAll('.answer-item');
+        for (let i = 0; i < items.length; i++) {
+          const txt = items[i].querySelector('input[type="text"]').value.trim();
+          if (!txt) { hasEmpty = true; break; }
+          answers.push(txt);
+          if (items[i].querySelector('input[type="radio"]').checked) correctAnswer = i;
         }
 
-        if (hasEmptyAnswer) {
-          alert('모든 답안을 입력하세요.');
-          return;
-        }
+        if (hasEmpty) { alert('모든 답안을 입력하세요.'); return; }
+        if (answers.length < 2) { alert('각 문제에 최소 2개의 답안이 필요합니다.'); return; }
 
-        if (answers.length < 2) {
-          alert('각 문제에 최소 2개의 답안이 필요합니다.');
-          return;
-        }
-
-        questions.push({
-          text,
-          images,
-          answers,
-          correctAnswer
-        });
+        questions.push({ text, images, answers, correctAnswer });
       }
 
-      const submitBtn = document.getElementById('submitBtn');
-      submitBtn.disabled = true;
-      submitBtn.textContent = '생성 중...';
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = '생성 중...';
 
       try {
         const res = await fetch('/api/quiz', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            thumbnail: thumbnailUrl,
-            questions
-          })
+          body: JSON.stringify({ title, thumbnail: thumbnailUrl, questions })
         });
         const data = await res.json();
         if (data.success) {
-          const quizUrl = window.location.origin + '/q/' + data.quizId;
-          document.getElementById('quizUrl').textContent = quizUrl;
+          document.getElementById('quizUrl').textContent = window.location.origin + '/' + data.quizId;
           document.getElementById('successModal').classList.add('active');
         } else {
-          alert('퀴즈 생성 실패');
+          alert(data.error || '퀴즈 생성 실패');
         }
       } catch (err) {
         alert('오류가 발생했습니다.');
       } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = '퀴즈 생성하기';
+        btn.disabled = false;
+        btn.textContent = '퀴즈 생성하기';
       }
     }
 
     function copyUrl() {
-      const url = document.getElementById('quizUrl').textContent;
-      navigator.clipboard.writeText(url).then(() => {
-        alert('URL이 복사되었습니다!');
+      navigator.clipboard.writeText(document.getElementById('quizUrl').textContent).then(() => {
+        alert('링크가 복사되었습니다!');
       });
     }
   </script>
@@ -1004,7 +1073,6 @@ function getCreatePage() {
 </html>`;
 }
 
-// 퀴즈 풀기 페이지
 function getQuizPage(quiz, quizId) {
   return `<!DOCTYPE html>
 <html lang="ko">
@@ -1013,380 +1081,320 @@ function getQuizPage(quiz, quizId) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(quiz.title)} - open-theQUIZ</title>
   <meta property="og:title" content="${escapeHtml(quiz.title)}">
-  <meta property="og:description" content="open-theQUIZ에서 퀴즈를 풀어보세요!">
+  <meta property="og:description" content="지금 바로 퀴즈에 도전해보세요!">
   ${quiz.thumbnail ? `<meta property="og:image" content="${escapeHtml(quiz.thumbnail)}">` : ''}
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f5f5;
-      min-height: 100vh;
-    }
-    .intro-screen {
+  <style>${baseStyles}
+    .intro {
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 20px;
+      padding: 24px;
     }
     .intro-card {
-      background: white;
-      border-radius: 20px;
-      padding: 40px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 40px 32px;
       text-align: center;
-      max-width: 500px;
+      max-width: 400px;
       width: 100%;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     }
     .intro-card img {
       max-width: 100%;
-      max-height: 250px;
-      border-radius: 12px;
-      margin-bottom: 20px;
+      max-height: 200px;
+      border-radius: 8px;
+      margin-bottom: 24px;
     }
     .intro-card h1 {
-      color: #333;
-      font-size: 1.8rem;
-      margin-bottom: 10px;
+      font-size: 24px;
+      margin-bottom: 8px;
     }
-    .intro-card p {
-      color: #666;
-      margin-bottom: 30px;
+    .intro-card .info {
+      color: var(--text-secondary);
+      margin-bottom: 32px;
     }
-    .start-btn {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      padding: 16px 48px;
-      border-radius: 50px;
-      font-size: 1.2rem;
+    .intro-card .start-btn {
+      width: 100%;
+      padding: 16px;
+      font-size: 16px;
       font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s;
     }
-    .start-btn:hover {
-      transform: scale(1.05);
-    }
-    .quiz-screen {
+    .quiz-view {
       display: none;
-      padding: 20px;
-      max-width: 700px;
-      margin: 0 auto;
+      padding: 24px 16px;
     }
-    .progress-bar {
-      background: #e0e0e0;
-      border-radius: 10px;
-      height: 8px;
-      margin-bottom: 30px;
+    .progress {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-bottom: 24px;
       overflow: hidden;
     }
-    .progress-fill {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .progress-bar {
       height: 100%;
+      background: var(--primary);
       transition: width 0.3s;
     }
-    .question-container {
-      background: white;
-      border-radius: 16px;
-      padding: 30px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    .q-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
     }
-    .question-number {
-      color: #667eea;
+    .q-num {
+      font-size: 13px;
+      color: var(--primary);
       font-weight: 600;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
-    .question-text {
-      font-size: 1.3rem;
-      color: #333;
+    .q-text {
+      font-size: 18px;
+      font-weight: 500;
       margin-bottom: 20px;
       line-height: 1.5;
     }
-    .question-images {
+    .q-images {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
       margin-bottom: 20px;
     }
-    .question-images img {
-      max-width: 100%;
-      max-height: 300px;
+    .q-images img {
+      max-height: 200px;
       border-radius: 8px;
       cursor: pointer;
     }
-    .answers {
+    .options {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
-    .answer-btn {
-      background: #f5f5f5;
-      border: 2px solid #e0e0e0;
-      padding: 16px 20px;
-      border-radius: 12px;
+    .option-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+      border-radius: 8px;
       text-align: left;
-      font-size: 1rem;
+      font-size: 15px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s;
     }
-    .answer-btn:hover {
-      border-color: #667eea;
-      background: #f8f8ff;
+    .option-btn:hover {
+      border-color: var(--primary);
     }
-    .answer-btn.selected {
-      border-color: #667eea;
-      background: #667eea;
+    .option-btn.selected {
+      background: var(--primary);
+      border-color: var(--primary);
       color: white;
     }
-    .nav-buttons {
+    .nav-btns {
       display: flex;
       justify-content: space-between;
-      margin-top: 30px;
+      margin-top: 24px;
+      gap: 12px;
     }
-    .nav-btn {
-      background: #667eea;
-      color: white;
-      border: none;
-      padding: 12px 30px;
-      border-radius: 8px;
-      font-size: 1rem;
-      cursor: pointer;
+    .nav-btns .btn {
+      flex: 1;
     }
-    .nav-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .submit-btn {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 14px 40px;
-    }
-    .result-screen {
+    .result {
       display: none;
       min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 20px;
+      padding: 24px;
     }
     .result-card {
-      background: white;
-      border-radius: 20px;
-      padding: 40px;
-      max-width: 500px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 32px;
+      max-width: 400px;
       margin: 0 auto;
       text-align: center;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     }
-    .result-card h2 {
-      color: #667eea;
-      font-size: 2rem;
-      margin-bottom: 20px;
+    .result-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
     }
-    .score {
-      font-size: 4rem;
+    .result-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .score-display {
+      font-size: 48px;
       font-weight: 700;
-      color: #333;
-      margin-bottom: 10px;
+      color: var(--primary);
+      margin-bottom: 8px;
     }
     .score-detail {
-      color: #666;
-      font-size: 1.2rem;
-      margin-bottom: 20px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
     }
-    .percentile {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 15px 30px;
-      border-radius: 50px;
-      font-size: 1.2rem;
-      margin-bottom: 30px;
+    .rank-badge {
       display: inline-block;
+      background: var(--primary);
+      color: white;
+      padding: 10px 24px;
+      border-radius: 100px;
+      font-weight: 600;
+      margin-bottom: 32px;
     }
-    .share-section {
-      border-top: 1px solid #e0e0e0;
-      padding-top: 30px;
-      margin-top: 20px;
+    .share-box {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
     }
-    .share-section h3 {
-      color: #333;
-      margin-bottom: 15px;
+    .share-box h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
     }
     .share-url {
-      background: #f5f5f5;
-      padding: 15px;
+      background: var(--bg);
+      padding: 12px;
       border-radius: 8px;
-      word-break: break-all;
-      margin-bottom: 15px;
       font-family: monospace;
-      font-size: 0.9rem;
+      font-size: 13px;
+      margin-bottom: 12px;
+      word-break: break-all;
+      border: 1px solid var(--border);
     }
-    .copy-btn {
-      background: #667eea;
-      color: white;
-      border: none;
-      padding: 12px 30px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-    }
-    .image-modal {
+    .img-modal {
       display: none;
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       background: rgba(0,0,0,0.9);
-      z-index: 1000;
       align-items: center;
       justify-content: center;
+      z-index: 1000;
+      padding: 24px;
     }
-    .image-modal.active {
+    .img-modal.active {
       display: flex;
     }
-    .image-modal img {
-      max-width: 90%;
-      max-height: 90%;
+    .img-modal img {
+      max-width: 100%;
+      max-height: 100%;
     }
-    .image-modal .close {
+    .img-modal .close {
       position: absolute;
-      top: 20px;
-      right: 30px;
+      top: 16px;
+      right: 20px;
       color: white;
-      font-size: 2rem;
+      font-size: 32px;
       cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <div class="intro-screen" id="introScreen">
+  <div class="intro" id="introScreen">
     <div class="intro-card">
       ${quiz.thumbnail ? `<img src="${escapeHtml(quiz.thumbnail)}" alt="">` : ''}
       <h1>${escapeHtml(quiz.title)}</h1>
-      <p>총 ${quiz.questions.length}문제</p>
-      <button class="start-btn" onclick="startQuiz()">퀴즈 풀기</button>
+      <p class="info">총 ${quiz.questions.length}문제</p>
+      <button class="btn btn-primary start-btn" onclick="startQuiz()">시작하기</button>
     </div>
   </div>
 
-  <div class="quiz-screen" id="quizScreen">
-    <div class="progress-bar">
-      <div class="progress-fill" id="progressFill"></div>
+  <div class="quiz-view container" id="quizScreen">
+    <div class="progress">
+      <div class="progress-bar" id="progressBar"></div>
     </div>
-    <div class="question-container">
-      <div class="question-number" id="questionNumber"></div>
-      <div class="question-text" id="questionText"></div>
-      <div class="question-images" id="questionImages"></div>
-      <div class="answers" id="answers"></div>
+    <div class="q-card">
+      <div class="q-num" id="qNum"></div>
+      <div class="q-text" id="qText"></div>
+      <div class="q-images" id="qImages"></div>
+      <div class="options" id="options"></div>
     </div>
-    <div class="nav-buttons">
-      <button class="nav-btn" id="prevBtn" onclick="prevQuestion()">이전</button>
-      <button class="nav-btn" id="nextBtn" onclick="nextQuestion()">다음</button>
-      <button class="nav-btn submit-btn" id="submitQuizBtn" onclick="submitQuiz()" style="display:none;">답안 제출</button>
+    <div class="nav-btns">
+      <button class="btn btn-secondary" id="prevBtn" onclick="prevQ()">이전</button>
+      <button class="btn btn-primary" id="nextBtn" onclick="nextQ()">다음</button>
+      <button class="btn btn-primary" id="submitBtn" onclick="submitQuiz()" style="display:none;">제출하기</button>
     </div>
   </div>
 
-  <div class="result-screen" id="resultScreen">
+  <div class="result" id="resultScreen">
     <div class="result-card">
-      <h2>🎉 퀴즈 완료!</h2>
-      <div class="score" id="score"></div>
+      <div class="result-icon">🎉</div>
+      <div class="result-title">퀴즈 완료!</div>
+      <div class="score-display" id="score"></div>
       <div class="score-detail" id="scoreDetail"></div>
-      <div class="percentile" id="percentile"></div>
-      <div class="share-section">
-        <h3>이 퀴즈 공유하기</h3>
+      <div class="rank-badge" id="rank"></div>
+      <div class="share-box">
+        <h4>친구에게 공유하기</h4>
         <div class="share-url" id="shareUrl"></div>
-        <button class="copy-btn" onclick="copyShareUrl()">URL 복사</button>
+        <button class="btn btn-primary" onclick="copyUrl()" style="width: 100%;">링크 복사</button>
       </div>
     </div>
   </div>
 
-  <div class="image-modal" id="imageModal" onclick="closeImageModal()">
+  <div class="img-modal" id="imgModal" onclick="closeModal()">
     <span class="close">&times;</span>
-    <img id="modalImage" src="" alt="">
+    <img id="modalImg" src="" alt="">
   </div>
 
   <script>
-    const quizData = ${JSON.stringify({ ...quiz, questions: quiz.questions.map(q => ({ ...q, correctAnswer: undefined })) })};
+    const quiz = ${JSON.stringify({ ...quiz, questions: quiz.questions.map(q => ({ ...q, correctAnswer: undefined })) })};
     const quizId = '${quizId}';
-    let currentQuestion = 0;
-    const userAnswers = new Array(quizData.questions.length).fill(null);
+    let current = 0;
+    const answers = new Array(quiz.questions.length).fill(null);
 
     function startQuiz() {
       document.getElementById('introScreen').style.display = 'none';
       document.getElementById('quizScreen').style.display = 'block';
-      showQuestion(0);
+      showQ(0);
     }
 
-    function showQuestion(index) {
-      currentQuestion = index;
-      const question = quizData.questions[index];
-      const total = quizData.questions.length;
+    function showQ(idx) {
+      current = idx;
+      const q = quiz.questions[idx];
+      const total = quiz.questions.length;
 
-      document.getElementById('progressFill').style.width = ((index + 1) / total * 100) + '%';
-      document.getElementById('questionNumber').textContent = '문제 ' + (index + 1) + ' / ' + total;
-      document.getElementById('questionText').textContent = question.text;
+      document.getElementById('progressBar').style.width = ((idx + 1) / total * 100) + '%';
+      document.getElementById('qNum').textContent = '문제 ' + (idx + 1) + ' / ' + total;
+      document.getElementById('qText').textContent = q.text;
 
-      // 이미지
-      const imagesDiv = document.getElementById('questionImages');
-      imagesDiv.innerHTML = '';
-      if (question.images && question.images.length > 0) {
-        question.images.forEach(img => {
-          const imgEl = document.createElement('img');
-          imgEl.src = img;
-          imgEl.onclick = () => openImageModal(img);
-          imagesDiv.appendChild(imgEl);
+      const imgDiv = document.getElementById('qImages');
+      imgDiv.innerHTML = '';
+      if (q.images?.length) {
+        q.images.forEach(src => {
+          const img = document.createElement('img');
+          img.src = src;
+          img.onclick = () => openModal(src);
+          imgDiv.appendChild(img);
         });
       }
 
-      // 답안
-      const answersDiv = document.getElementById('answers');
-      answersDiv.innerHTML = '';
-      question.answers.forEach((answer, i) => {
+      const optDiv = document.getElementById('options');
+      optDiv.innerHTML = '';
+      q.answers.forEach((ans, i) => {
         const btn = document.createElement('button');
-        btn.className = 'answer-btn' + (userAnswers[index] === i ? ' selected' : '');
-        btn.textContent = (i + 1) + ') ' + answer;
+        btn.className = 'option-btn' + (answers[idx] === i ? ' selected' : '');
+        btn.textContent = (i + 1) + '. ' + ans;
         btn.onclick = () => selectAnswer(i);
-        answersDiv.appendChild(btn);
+        optDiv.appendChild(btn);
       });
 
-      // 네비게이션
-      document.getElementById('prevBtn').disabled = index === 0;
-      if (index === total - 1) {
-        document.getElementById('nextBtn').style.display = 'none';
-        document.getElementById('submitQuizBtn').style.display = 'inline-block';
-      } else {
-        document.getElementById('nextBtn').style.display = 'inline-block';
-        document.getElementById('submitQuizBtn').style.display = 'none';
+      document.getElementById('prevBtn').disabled = idx === 0;
+      document.getElementById('nextBtn').style.display = idx === total - 1 ? 'none' : 'block';
+      document.getElementById('submitBtn').style.display = idx === total - 1 ? 'block' : 'none';
+    }
+
+    function selectAnswer(i) {
+      answers[current] = i;
+      showQ(current);
+      if (current < quiz.questions.length - 1) {
+        setTimeout(() => nextQ(), 250);
       }
     }
 
-    function selectAnswer(answerIndex) {
-      userAnswers[currentQuestion] = answerIndex;
-      showQuestion(currentQuestion);
-
-      // 자동 다음 문제
-      if (currentQuestion < quizData.questions.length - 1) {
-        setTimeout(() => {
-          nextQuestion();
-        }, 300);
-      }
-    }
-
-    function prevQuestion() {
-      if (currentQuestion > 0) {
-        showQuestion(currentQuestion - 1);
-      }
-    }
-
-    function nextQuestion() {
-      if (currentQuestion < quizData.questions.length - 1) {
-        showQuestion(currentQuestion + 1);
-      }
-    }
+    function prevQ() { if (current > 0) showQ(current - 1); }
+    function nextQ() { if (current < quiz.questions.length - 1) showQ(current + 1); }
 
     async function submitQuiz() {
-      const unanswered = userAnswers.findIndex(a => a === null);
-      if (unanswered !== -1) {
-        if (!confirm('아직 답하지 않은 문제가 있습니다. 그래도 제출하시겠습니까?')) {
-          showQuestion(unanswered);
+      const empty = answers.findIndex(a => a === null);
+      if (empty !== -1) {
+        if (!confirm('아직 답하지 않은 문제가 있습니다. 제출하시겠습니까?')) {
+          showQ(empty);
           return;
         }
       }
@@ -1395,20 +1403,16 @@ function getQuizPage(quiz, quizId) {
         const res = await fetch('/api/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            quizId: quizId,
-            answers: userAnswers
-          })
+          body: JSON.stringify({ quizId, answers })
         });
         const data = await res.json();
 
         if (data.success) {
           document.getElementById('quizScreen').style.display = 'none';
           document.getElementById('resultScreen').style.display = 'block';
-
           document.getElementById('score').textContent = data.score + '/' + data.total;
-          document.getElementById('scoreDetail').textContent = '총 ' + data.total + '문제 중 ' + data.score + '문제 정답';
-          document.getElementById('percentile').textContent = '상위 ' + data.percentile + '%';
+          document.getElementById('scoreDetail').textContent = data.total + '문제 중 ' + data.score + '문제 정답';
+          document.getElementById('rank').textContent = '상위 ' + data.percentile + '%';
           document.getElementById('shareUrl').textContent = window.location.href;
         }
       } catch (err) {
@@ -1416,19 +1420,17 @@ function getQuizPage(quiz, quizId) {
       }
     }
 
-    function copyShareUrl() {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        alert('URL이 복사되었습니다!');
-      });
+    function copyUrl() {
+      navigator.clipboard.writeText(window.location.href).then(() => alert('링크가 복사되었습니다!'));
     }
 
-    function openImageModal(src) {
-      document.getElementById('modalImage').src = src;
-      document.getElementById('imageModal').classList.add('active');
+    function openModal(src) {
+      document.getElementById('modalImg').src = src;
+      document.getElementById('imgModal').classList.add('active');
     }
 
-    function closeImageModal() {
-      document.getElementById('imageModal').classList.remove('active');
+    function closeModal() {
+      document.getElementById('imgModal').classList.remove('active');
     }
   </script>
 </body>
