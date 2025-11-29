@@ -1293,7 +1293,7 @@ function getQuizPage(quiz, quizId) {
       transform: translateY(-4px);
     }
     .option-btn.selected > span {
-      color: white;
+      color: white !important;
     }
     .nav-btns {
       display: flex;
