@@ -1,0 +1,11 @@
+name = "open-thequiz"
+main = "src/index.js"
+compatibility_date = "2025-11-29"
+
+[[kv_namespaces]]
+binding = "QUIZ_KV"
+id = "4904d2842303487492ecdf255d5ce4a1"
+
+[[r2_buckets]]
+binding = "QUIZ_IMAGES"
+bucket_name = "quiz-bucket"
