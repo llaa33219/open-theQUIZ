@@ -889,7 +889,7 @@ function getCreatePage() {
       <div class="section-title" style="margin-top:0">기본 정보</div>
       <div class="form-group">
         <label>퀴즈 제목</label>
-        <input type="text" class="input" id="quizTitle" placeholder="예: 자바스크립트 문법 맞추기>
+        <input type="text" class="input" id="quizTitle" placeholder="예: 자바스크립트 문법 맞추기">
       </div>
       <div class="form-group" style="margin-bottom: 0;">
         <label>썸네일 이미지 (선택)</label>
@@ -1281,7 +1281,7 @@ function getQuizPage(quiz, quizId) {
     }
     .option-btn:hover {
       border-color: var(--primary-500);
-      box-shadow: 8px 8px 0px var(--primary-500);
+      box-shadow: 0px 8px 0px var(--primary-500);
       transform: translateY(-8px);
     }
     .option-btn.selected {
