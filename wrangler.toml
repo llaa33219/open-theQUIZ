@@ -1,6 +1,9 @@
 name = "open-thequiz"
 main = "src/index.js"
 compatibility_date = "2025-11-29"
+routes = [
+  { pattern = "quiz.bloupla.net", custom_domain = true, zone_name = "bloupla.net" }
+]
 
 [[kv_namespaces]]
 binding = "QUIZ_KV"
