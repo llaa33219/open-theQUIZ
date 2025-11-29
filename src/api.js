@@ -1,16 +1,19 @@
-import { generateId } from './utils.js';
+import { generateId, sanitizeString, sanitizeUrl } from './utils.js';
 
 export async function createQuiz(request, env, corsHeaders) {
   const data = await request.json();
 
-  if (!data.title || typeof data.title !== 'string' || data.title.trim().length === 0) {
+  // 먼저 sanitize 적용 후 검증
+  const sanitizedTitle = sanitizeString(data.title || '');
+  
+  if (!sanitizedTitle || sanitizedTitle.length === 0) {
     return new Response(JSON.stringify({ error: '퀴즈 제목이 필요합니다.' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  if (data.title.length > 200) {
+  if (sanitizedTitle.length > 200) {
     return new Response(JSON.stringify({ error: '퀴즈 제목은 200자 이하여야 합니다.' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -31,9 +34,13 @@ export async function createQuiz(request, env, corsHeaders) {
     });
   }
 
+  // 문제와 답안도 sanitize 후 검증
+  const sanitizedQuestions = [];
   for (let i = 0; i < data.questions.length; i++) {
     const q = data.questions[i];
-    if (!q.text || typeof q.text !== 'string' || q.text.trim().length === 0) {
+    const sanitizedText = sanitizeString(q.text || '');
+    
+    if (!sanitizedText || sanitizedText.length === 0) {
       return new Response(JSON.stringify({ error: `문제 ${i + 1}의 내용이 필요합니다.` }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -51,12 +58,29 @@ export async function createQuiz(request, env, corsHeaders) {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    
+    const sanitizedAnswers = q.answers.map(a => sanitizeString(String(a || '')));
+    const emptyAnswerIndex = sanitizedAnswers.findIndex(a => !a || a.length === 0);
+    if (emptyAnswerIndex !== -1) {
+      return new Response(JSON.stringify({ error: `문제 ${i + 1}의 답안 ${emptyAnswerIndex + 1}이 비어있습니다.` }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
     if (typeof q.correctAnswer !== 'number' || q.correctAnswer < 0 || q.correctAnswer >= q.answers.length) {
       return new Response(JSON.stringify({ error: `문제 ${i + 1}의 정답이 올바르지 않습니다.` }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    
+    sanitizedQuestions.push({
+      text: sanitizedText,
+      images: Array.isArray(q.images) ? q.images.map(img => sanitizeUrl(img)).filter(Boolean) : [],
+      answers: sanitizedAnswers,
+      correctAnswer: q.correctAnswer,
+    });
   }
 
   let quizId;
@@ -71,9 +95,9 @@ export async function createQuiz(request, env, corsHeaders) {
 
   const quiz = {
     id: quizId,
-    title: data.title,
-    thumbnail: data.thumbnail || null,
-    questions: data.questions,
+    title: sanitizedTitle,
+    thumbnail: data.thumbnail ? sanitizeUrl(data.thumbnail) : null,
+    questions: sanitizedQuestions,
     createdAt: Date.now(),
   };
 
@@ -118,7 +142,24 @@ export async function uploadImage(request, env, corsHeaders) {
     });
   }
 
-  const ext = file.name.split('.').pop() || 'jpg';
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    return new Response(JSON.stringify({ error: '허용되지 않는 파일 형식입니다.' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const maxSize = 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    return new Response(JSON.stringify({ error: '파일 크기는 10MB 이하여야 합니다.' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp' };
+  const ext = extMap[file.type] || 'jpg';
   const imageId = `${generateId()}_${Date.now()}.${ext}`;
 
   await env.QUIZ_IMAGES.put(imageId, file.stream(), {

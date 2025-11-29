@@ -325,7 +325,11 @@ export function getCreatePage() {
         if (data.success) {
           thumbnailUrl = data.imageUrl;
           const uploadDiv = document.getElementById('thumbnailUpload');
-          uploadDiv.innerHTML = '<img src="' + data.imageUrl + '" alt="thumbnail">';
+          uploadDiv.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = data.imageUrl;
+          img.alt = 'thumbnail';
+          uploadDiv.appendChild(img);
           uploadDiv.classList.add('has-image');
         }
       } catch (err) {
@@ -427,14 +431,24 @@ export function getCreatePage() {
           const data = await res.json();
           if (data.success) {
             const idx = preview.querySelectorAll('.image-item').length + 1;
-            const html = \`
-              <div class="image-item" draggable="true" data-url="\${data.imageUrl}">
-                <img src="\${data.imageUrl}" alt="">
-                <span class="img-num">\${idx}</span>
-                <button class="img-remove" onclick="removeImage(this, \${questionId})">×</button>
-              </div>
-            \`;
-            preview.insertAdjacentHTML('beforeend', html);
+            const div = document.createElement('div');
+            div.className = 'image-item';
+            div.draggable = true;
+            div.dataset.url = data.imageUrl;
+            const img = document.createElement('img');
+            img.src = data.imageUrl;
+            img.alt = '';
+            const numSpan = document.createElement('span');
+            numSpan.className = 'img-num';
+            numSpan.textContent = idx;
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'img-remove';
+            removeBtn.textContent = '×';
+            removeBtn.onclick = function() { removeImage(this, questionId); };
+            div.appendChild(img);
+            div.appendChild(numSpan);
+            div.appendChild(removeBtn);
+            preview.appendChild(div);
             setupDragAndDrop(questionId);
           }
         } catch (err) {

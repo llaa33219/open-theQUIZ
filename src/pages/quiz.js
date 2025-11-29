@@ -1,5 +1,5 @@
 import { baseStyles } from '../styles.js';
-import { escapeHtml } from '../utils.js';
+import { escapeHtml, safeJsonStringify } from '../utils.js';
 
 export function getQuizPage(quiz, quizId) {
   return `<!DOCTYPE html>
@@ -295,8 +295,8 @@ export function getQuizPage(quiz, quizId) {
   </div>
 
   <script>
-    const quiz = ${JSON.stringify({ ...quiz, questions: quiz.questions.map(q => ({ ...q, correctAnswer: undefined })) })};
-    const quizId = '${quizId}';
+    const quiz = ${safeJsonStringify({ ...quiz, questions: quiz.questions.map(q => ({ ...q, correctAnswer: undefined })) })};
+    const quizId = ${safeJsonStringify(quizId)};
     let current = 0;
     const answers = new Array(quiz.questions.length).fill(null);
 
@@ -331,7 +331,13 @@ export function getQuizPage(quiz, quizId) {
       q.answers.forEach((ans, i) => {
         const btn = document.createElement('button');
         btn.className = 'option-btn' + (answers[idx] === i ? ' selected' : '');
-        btn.innerHTML = '<span style="margin-right: 12px; color: var(--primary-500); font-weight:bold;">' + (i + 1) + '</span>' + '<span>' + ans + '</span>';
+        const numSpan = document.createElement('span');
+        numSpan.style.cssText = 'margin-right: 12px; color: var(--primary-500); font-weight:bold;';
+        numSpan.textContent = i + 1;
+        const textSpan = document.createElement('span');
+        textSpan.textContent = ans;
+        btn.appendChild(numSpan);
+        btn.appendChild(textSpan);
         btn.onclick = () => selectAnswer(i);
         optDiv.appendChild(btn);
       });
