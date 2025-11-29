@@ -377,7 +377,7 @@ const baseStyles = `
     --radius-md: 20px;
     --radius-lg: 26px;
     
-    --container-max-width: 1280px;
+    --container-max-width: 800px;
   }
 
   body {
@@ -530,9 +530,9 @@ function get404Page() {
 <body>
   <div class="container error-page">
     <div class="card error-card static">
-      <div class="error-icon">🤔</div>
-      <h1 class="error-title">페이지를 찾을 수 없습니다</h1>
-      <p style="margin-bottom: var(--space-xl); color: var(--gray-600);">잘못된 주소이거나 삭제된 퀴즈입니다.</p>
+      <div class="error-icon">💀</div>
+      <h1 class="error-title">404</h1>
+      <p style="margin-bottom: var(--space-xl); color: var(--gray-600);">잘못된 주소 또는 삭제된 퀴즈입니다./p>
       <a href="/" class="btn btn-primary">홈으로 돌아가기</a>
     </div>
   </div>
@@ -605,31 +605,12 @@ function getHomePage() {
 </head>
 <body>
   <div class="hero">
-    <div class="logo-area">open<br>theQUIZ</div>
-    <h1 class="hero-title">나만의 퀴즈가<br>세상을 즐겁게</h1>
-    <p class="hero-subtitle">친구들과 공유할 퀴즈를 가장 빠르고 스타일리시하게 만들어보세요.</p>
+    <h1 class="hero-title">open-theQUIZ</h1>
+    <p class="hero-subtitle">퀴즈 공유 사이트</p>
     
     <a href="/create" class="btn btn-primary" style="font-size: 24px; padding: 16px 48px;">
-      퀴즈 만들기 시작 →
+      퀴즈 만들기
     </a>
-
-    <div class="features-grid">
-      <div class="card feature-card">
-        <div class="feature-icon">⚡️</div>
-        <div class="feature-title">초고속 제작</div>
-        <div class="feature-desc">복잡한 설정 없이<br>즉시 시작하세요</div>
-      </div>
-      <div class="card feature-card">
-        <div class="feature-icon">🎨</div>
-        <div class="feature-title">멋진 디자인</div>
-        <div class="feature-desc">네오브루탈리즘 스타일로<br>자동 완성됩니다</div>
-      </div>
-      <div class="card feature-card">
-        <div class="feature-icon">🚀</div>
-        <div class="feature-title">즉시 공유</div>
-        <div class="feature-desc">링크 하나로<br>어디든 공유 가능</div>
-      </div>
-    </div>
   </div>
 </body>
 </html>`;
@@ -908,7 +889,7 @@ function getCreatePage() {
       <div class="section-title" style="margin-top:0">기본 정보</div>
       <div class="form-group">
         <label>퀴즈 제목</label>
-        <input type="text" class="input" id="quizTitle" placeholder="예: 역사 상식 퀴즈">
+        <input type="text" class="input" id="quizTitle" placeholder="예: 자바스크립트 문법 맞추기>
       </div>
       <div class="form-group" style="margin-bottom: 0;">
         <label>썸네일 이미지 (선택)</label>
@@ -928,9 +909,9 @@ function getCreatePage() {
 
   <div class="modal" id="successModal">
     <div class="modal-content">
-      <div class="modal-icon">🎉</div>
-      <div class="modal-title">퀴즈가 생성되었습니다!</div>
-      <div class="modal-desc">아래 링크를 복사해서 공유하세요.</div>
+      <div class="modal-icon">✔️</div>
+      <div class="modal-title">퀴즈가 정상적으로 생성되었습니다.</div>
+      <div class="modal-desc">아래 링크를 복사하여 공유할 수 있습니다.</div>
       <div class="quiz-url" id="quizUrl"></div>
       <button class="btn btn-primary" onclick="copyUrl()" style="width: 100%;">링크 복사하기</button>
     </div>
@@ -1300,8 +1281,8 @@ function getQuizPage(quiz, quizId) {
     }
     .option-btn:hover {
       border-color: var(--primary-500);
-      background: var(--primary-50);
-      transform: translateY(-2px);
+      box-shadow: 8px 8px 0px var(--primary-500);
+      transform: translateY(-8px);
     }
     .option-btn.selected {
       background: var(--primary-500);
@@ -1310,6 +1291,9 @@ function getQuizPage(quiz, quizId) {
       font-weight: 600;
       box-shadow: var(--shadow-sm);
       transform: translateY(-4px);
+    }
+    .option-btn.selected > span {
+      color: white;
     }
     .nav-btns {
       display: flex;
@@ -1453,7 +1437,7 @@ function getQuizPage(quiz, quizId) {
       <div class="score-detail" id="scoreDetail"></div>
       <div class="rank-badge" id="rank"></div>
       <div class="share-box">
-        <h4>친구에게 공유하기</h4>
+        <h4>이 퀴즈 공유하기</h4>
         <div class="share-url" id="shareUrl"></div>
         <button class="btn btn-primary" onclick="copyUrl()" style="width: 100%;">링크 복사</button>
       </div>
