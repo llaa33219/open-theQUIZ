@@ -284,6 +284,7 @@ export function getQuizPage(quiz, quizId) {
         <h4>이 퀴즈 공유하기</h4>
         <div class="share-url" id="shareUrl"></div>
         <button class="btn btn-primary" onclick="copyUrl()" style="width: 100%;">링크 복사</button>
+        <button class="btn btn-secondary" onclick="location.href='/create'" style="width: 100%; margin-top: 12px;">퀴즈 직접 만들어보기</button>
       </div>
     </div>
   </div>

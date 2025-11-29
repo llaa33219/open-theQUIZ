@@ -37,6 +37,10 @@ export function getHomePage() {
         margin-bottom: var(--space-2xl);
         max-width: 600px;
     }
+    .hero-img {
+      max-width: 200px;
+      max-height: 200px;
+    }
     .features-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -65,6 +69,7 @@ export function getHomePage() {
 </head>
 <body>
   <div class="hero">
+    <img class="hero-img" src="https://img.bloupla.net/XSoiB9bU?raw=1">
     <h1 class="hero-title">open-theQUIZ</h1>
     <p class="hero-subtitle">퀴즈 공유 사이트</p>
     
