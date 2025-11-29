@@ -6,6 +6,7 @@ export function getHomePage() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="https://img.bloupla.net/XSoiB9bU?raw=1" type="image/png">
   <title>open-theQUIZ</title>
   <style>${baseStyles}
     .hero {

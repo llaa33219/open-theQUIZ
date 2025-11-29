@@ -7,6 +7,7 @@ export function getQuizPage(quiz, quizId) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="https://img.bloupla.net/XSoiB9bU?raw=1" type="image/png">
   <title>${escapeHtml(quiz.title)} - open-theQUIZ</title>
   <meta property="og:title" content="${escapeHtml(quiz.title)}">
   <meta property="og:description" content="지금 바로 퀴즈에 도전해보세요!">
