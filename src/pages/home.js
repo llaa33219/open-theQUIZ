@@ -40,6 +40,7 @@ export function getHomePage() {
     .hero-img {
       max-width: 200px;
       max-height: 200px;
+      margin-bottom: 12px;
     }
     .features-grid {
         display: grid;
@@ -72,7 +73,6 @@ export function getHomePage() {
     <img class="hero-img" src="https://img.bloupla.net/XSoiB9bU?raw=1">
     <h1 class="hero-title">open-theQUIZ</h1>
     <p class="hero-subtitle">퀴즈 공유 사이트</p>
-    
     <a href="/create" class="btn btn-primary" style="font-size: 24px; padding: 16px 48px;">
       퀴즈 만들기
     </a>
