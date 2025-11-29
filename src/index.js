@@ -315,95 +315,185 @@ async function getStats(quizId, env, corsHeaders) {
 }
 
 const baseStyles = `
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  :root {
-    --primary: #6366f1;
-    --primary-dark: #4f46e5;
-    --primary-light: #818cf8;
-    --bg: #fafafa;
-    --surface: #ffffff;
-    --text: #1f2937;
-    --text-secondary: #6b7280;
-    --border: #e5e7eb;
-    --success: #10b981;
-    --error: #ef4444;
-    --radius: 12px;
-    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
-    --shadow-lg: 0 4px 20px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.06);
+  @import url('https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;600;700&display=swap');
+  @font-face {
+    font-family: 'CloudSansCode';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408@1.0/goorm-sans-code.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
   }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    /* Colors */
+    --primary-50: #eef6ff;
+    --primary-500: #007BFF;
+    --primary-600: #005BDD;
+    --primary-700: #193694;
+
+    --secondary-500: #00d200;
+    
+    --white: #ffffff;
+    --gray-50: #fafafa;
+    --gray-100: #f5f5f5;
+    --gray-200: #e8e8e8;
+    --gray-300: #d6d6d6;
+    --gray-400: #a6a6a6;
+    --gray-600: #575757;
+    --gray-900: #1c1c1c;
+    
+    --error: #df0013;
+
+    /* Typography */
+    --font-primary: "CloudSansCode", -apple-system, sans-serif;
+    --font-mono: 'Google Sans Code', monospace;
+    
+    --text-display: 72px;
+    --text-h1: 56px;
+    --text-h2: 36px;
+    --text-h3: 28px;
+    --text-h4: 24px;
+    --text-h5: 20px;
+    --text-body-lg: 30px;
+    --text-body: 22px;
+    --text-body-sm: 16px;
+
+    /* Spacing */
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+    --space-3xl: 64px;
+    
+    /* Shadows */
+    --shadow-xs: 8px 8px 0px rgba(0,0,0,0.2);
+    --shadow-sm: 2px 2px 0px rgba(0,0,0,0.2);
+    --shadow-lg: 10px 10px 0px rgba(0,0,0,0.2);
+    --shadow-xl: 20px 20px 0px rgba(0,0,0,0.2);
+    
+    /* Radius */
+    --radius-md: 20px;
+    --radius-lg: 26px;
+    
+    --container-max-width: 1280px;
+  }
+
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.6;
+    font-family: var(--font-primary);
+    background: var(--gray-50);
+    color: var(--gray-900);
+    line-height: 1.5;
     min-height: 100vh;
   }
+
   .container {
-    max-width: 640px;
+    max-width: var(--container-max-width);
     margin: 0 auto;
-    padding: 24px 16px;
+    padding: 0 var(--space-xl);
   }
+
+  /* Buttons */
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 12px 24px;
-    border: none;
-    border-radius: var(--radius);
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s ease;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    font-size: var(--text-body);
+    font-family: var(--font-primary);
+    font-weight: 600;
     text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    gap: var(--space-sm);
   }
+
   .btn-primary {
-    background: var(--primary);
-    color: white;
+    background: var(--primary-500);
+    color: var(--white);
+    box-shadow: var(--shadow-xs);
   }
   .btn-primary:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
+    background: var(--primary-600);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(6px);
   }
+  .btn-primary:active {
+    background: var(--primary-700);
+    transform: translateY(8px);
+    box-shadow: none;
+  }
+  .btn-primary:disabled { opacity: 0.7; transform: none; box-shadow: none; cursor: not-allowed; }
+
   .btn-secondary {
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--primary-500);
+    border: 2px solid var(--primary-500);
+    padding: 10px 22px;
   }
   .btn-secondary:hover {
-    background: var(--bg);
-    border-color: var(--text-secondary);
+    box-shadow: var(--shadow-xs);
+    transform: translateY(-8px);
   }
+
+  /* Cards */
   .card {
-    background: var(--surface);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    padding: 24px;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.5s ease;
   }
+  .card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-10px);
+  }
+  .card.static:hover {
+     box-shadow: var(--shadow-sm);
+     transform: none;
+  }
+
+  /* Inputs */
   .input, textarea, select {
     width: 100%;
     padding: 12px 16px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 15px;
-    font-family: inherit;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    background: var(--surface);
+    background: var(--white);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    font-size: var(--text-body);
+    font-family: var(--font-primary);
+    color: var(--gray-900);
+    transition: all 0.3s ease;
   }
   .input:focus, textarea:focus, select:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: var(--shadow-xs);
+    transform: translateY(-8px);
   }
+  .input::placeholder { color: var(--gray-400); }
+  
   label {
     display: block;
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 6px;
-    color: var(--text);
+    font-size: var(--text-body);
+    font-weight: 600;
+    margin-bottom: var(--space-sm);
+    color: var(--gray-900);
   }
-  .form-group {
-    margin-bottom: 20px;
+  .form-group { margin-bottom: var(--space-lg); }
+  
+  /* Responsive */
+  @media (max-width: 640px) {
+    :root {
+      --text-h1: 36px;
+      --text-h2: 28px;
+      --text-body: 18px;
+      --space-xl: 16px;
+    }
+    .container { padding: 0 16px; }
   }
 `;
 
@@ -416,34 +506,33 @@ function get404Page() {
   <title>페이지를 찾을 수 없습니다 - open-theQUIZ</title>
   <style>${baseStyles}
     .error-page {
-      min-height: 100vh;
+      min-height: 90vh;
       display: flex;
       align-items: center;
       justify-content: center;
       text-align: center;
-      padding: 24px;
+    }
+    .error-card {
+      max-width: 500px;
+      width: 100%;
+      margin: 0 auto;
     }
     .error-icon {
-      font-size: 64px;
-      margin-bottom: 24px;
+      font-size: 80px;
+      margin-bottom: var(--space-lg);
     }
     .error-title {
-      font-size: 24px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-    .error-desc {
-      color: var(--text-secondary);
-      margin-bottom: 24px;
+      font-size: var(--text-h2);
+      margin-bottom: var(--space-md);
     }
   </style>
 </head>
 <body>
-  <div class="error-page">
-    <div>
-      <div class="error-icon">🔍</div>
+  <div class="container error-page">
+    <div class="card error-card static">
+      <div class="error-icon">🤔</div>
       <h1 class="error-title">페이지를 찾을 수 없습니다</h1>
-      <p class="error-desc">요청하신 퀴즈가 존재하지 않거나 삭제되었습니다.</p>
+      <p style="margin-bottom: var(--space-xl); color: var(--gray-600);">잘못된 주소이거나 삭제된 퀴즈입니다.</p>
       <a href="/" class="btn btn-primary">홈으로 돌아가기</a>
     </div>
   </div>
@@ -457,87 +546,88 @@ function getHomePage() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>open-theQUIZ - 나만의 퀴즈 만들기</title>
+  <title>open-theQUIZ</title>
   <style>${baseStyles}
     .hero {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 48px 24px;
+        min-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: var(--space-3xl) var(--space-xl);
     }
-    .logo {
-      font-size: 48px;
-      margin-bottom: 16px;
+    .logo-area {
+        margin-bottom: var(--space-xl);
+        font-size: var(--text-display);
+        font-weight: 800;
+        color: var(--primary-500);
+        text-shadow: 4px 4px 0px var(--gray-900);
+        line-height: 1;
     }
-    .title {
-      font-size: 32px;
-      font-weight: 700;
-      margin-bottom: 12px;
-      letter-spacing: -0.5px;
+    .hero-title {
+        font-size: var(--text-h1);
+        font-weight: 700;
+        margin-bottom: var(--space-md);
+        line-height: 1.1;
     }
-    .subtitle {
-      font-size: 18px;
-      color: var(--text-secondary);
-      margin-bottom: 40px;
-      max-width: 400px;
+    .hero-subtitle {
+        font-size: var(--text-body-lg);
+        color: var(--gray-600);
+        margin-bottom: var(--space-2xl);
+        max-width: 600px;
     }
-    .hero-btn {
-      padding: 16px 40px;
-      font-size: 17px;
-      font-weight: 600;
-      border-radius: 100px;
-      box-shadow: var(--shadow-lg);
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: var(--space-xl);
+        width: 100%;
+        max-width: var(--container-max-width);
+        margin-top: var(--space-3xl);
     }
-    .features {
-      display: flex;
-      gap: 32px;
-      margin-top: 64px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .feature {
-      text-align: center;
-      max-width: 160px;
+    .feature-card {
+        text-align: center;
     }
     .feature-icon {
-      font-size: 32px;
-      margin-bottom: 12px;
+        font-size: 48px;
+        margin-bottom: var(--space-md);
     }
     .feature-title {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 4px;
+        font-size: var(--text-h3);
+        font-weight: 600;
+        margin-bottom: var(--space-sm);
     }
     .feature-desc {
-      font-size: 13px;
-      color: var(--text-secondary);
+        font-size: var(--text-body);
+        color: var(--gray-600);
     }
   </style>
 </head>
 <body>
   <div class="hero">
-    <div class="logo">📝</div>
-    <h1 class="title">open-theQUIZ</h1>
-    <p class="subtitle">나만의 퀴즈를 만들고 친구들과 공유하세요. 간단하고 빠르게.</p>
-    <a href="/create" class="btn btn-primary hero-btn">퀴즈 만들기</a>
-    <div class="features">
-      <div class="feature">
-        <div class="feature-icon">✏️</div>
-        <div class="feature-title">쉬운 제작</div>
-        <div class="feature-desc">몇 번의 클릭으로 퀴즈 완성</div>
+    <div class="logo-area">open<br>theQUIZ</div>
+    <h1 class="hero-title">나만의 퀴즈가<br>세상을 즐겁게</h1>
+    <p class="hero-subtitle">친구들과 공유할 퀴즈를 가장 빠르고 스타일리시하게 만들어보세요.</p>
+    
+    <a href="/create" class="btn btn-primary" style="font-size: 24px; padding: 16px 48px;">
+      퀴즈 만들기 시작 →
+    </a>
+
+    <div class="features-grid">
+      <div class="card feature-card">
+        <div class="feature-icon">⚡️</div>
+        <div class="feature-title">초고속 제작</div>
+        <div class="feature-desc">복잡한 설정 없이<br>즉시 시작하세요</div>
       </div>
-      <div class="feature">
-        <div class="feature-icon">🔗</div>
-        <div class="feature-title">간편 공유</div>
-        <div class="feature-desc">링크 하나로 바로 공유</div>
+      <div class="card feature-card">
+        <div class="feature-icon">🎨</div>
+        <div class="feature-title">멋진 디자인</div>
+        <div class="feature-desc">네오브루탈리즘 스타일로<br>자동 완성됩니다</div>
       </div>
-      <div class="feature">
-        <div class="feature-icon">📊</div>
-        <div class="feature-title">결과 확인</div>
-        <div class="feature-desc">순위와 통계를 한눈에</div>
+      <div class="card feature-card">
+        <div class="feature-icon">🚀</div>
+        <div class="feature-title">즉시 공유</div>
+        <div class="feature-desc">링크 하나로<br>어디든 공유 가능</div>
       </div>
     </div>
   </div>
@@ -557,42 +647,43 @@ function getCreatePage() {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 0;
-      margin-bottom: 24px;
-      border-bottom: 1px solid var(--border);
+      padding: 24px 0;
+      margin-bottom: var(--space-xl);
     }
     .header-title {
-      font-size: 18px;
+      font-size: var(--text-h4);
       font-weight: 600;
     }
     .back-link {
-      color: var(--text-secondary);
+      color: var(--gray-600);
       text-decoration: none;
-      font-size: 14px;
+      font-size: 16px;
+      font-weight: 600;
     }
     .back-link:hover {
-      color: var(--text);
+      color: var(--primary-500);
     }
     .section-title {
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-secondary);
-      margin-bottom: 16px;
+      font-size: var(--text-h5);
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: var(--space-md);
+      margin-top: var(--space-lg);
     }
     .thumbnail-upload {
-      border: 2px dashed var(--border);
-      border-radius: var(--radius);
+      border: 2px dashed var(--gray-300);
+      border-radius: var(--radius-md);
       padding: 32px;
       text-align: center;
       cursor: pointer;
       transition: all 0.15s;
-      color: var(--text-secondary);
+      color: var(--gray-600);
+      background: var(--gray-50);
     }
     .thumbnail-upload:hover {
-      border-color: var(--primary);
-      color: var(--primary);
+      border-color: var(--primary-500);
+      color: var(--primary-500);
+      background: var(--primary-50);
     }
     .thumbnail-upload.has-image {
       padding: 8px;
@@ -601,14 +692,10 @@ function getCreatePage() {
     .thumbnail-upload img {
       max-width: 100%;
       max-height: 160px;
-      border-radius: 8px;
+      border-radius: 12px;
     }
     .question-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 16px;
+      margin-bottom: var(--space-lg);
     }
     .question-header {
       display: flex;
@@ -617,32 +704,36 @@ function getCreatePage() {
       margin-bottom: 16px;
     }
     .question-num {
-      font-weight: 600;
-      color: var(--primary);
+      font-weight: 700;
+      color: var(--primary-500);
+      font-size: var(--text-h5);
     }
     .delete-btn {
       background: none;
       border: none;
-      color: var(--text-secondary);
+      color: var(--gray-500);
       cursor: pointer;
       padding: 4px 8px;
-      font-size: 13px;
+      font-size: 14px;
+      font-weight: 600;
     }
     .delete-btn:hover {
       color: var(--error);
     }
     .image-area {
-      border: 2px dashed var(--border);
-      border-radius: 8px;
+      border: 2px dashed var(--gray-300);
+      border-radius: var(--radius-md);
       padding: 16px;
       text-align: center;
       cursor: pointer;
       margin-bottom: 16px;
       font-size: 14px;
-      color: var(--text-secondary);
+      color: var(--gray-600);
+      background: var(--gray-50);
     }
     .image-area:hover {
-      border-color: var(--primary);
+      border-color: var(--primary-500);
+      background: var(--primary-50);
     }
     .images-preview {
       display: flex;
@@ -652,30 +743,31 @@ function getCreatePage() {
     }
     .image-item {
       position: relative;
-      width: 72px;
-      height: 72px;
+      width: 80px;
+      height: 80px;
       cursor: grab;
     }
     .image-item img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      border-radius: 8px;
+      border-radius: 12px;
     }
     .image-item .img-num {
       position: absolute;
       top: -6px;
       left: -6px;
-      background: var(--primary);
+      background: var(--primary-500);
       color: white;
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
       display: flex;
       align-items: center;
       justify-content: center;
+      border: 2px solid white;
     }
     .image-item .img-remove {
       position: absolute;
@@ -683,13 +775,16 @@ function getCreatePage() {
       right: -6px;
       background: var(--error);
       color: white;
-      border: none;
-      width: 20px;
-      height: 20px;
+      border: 2px solid white;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       font-size: 14px;
       cursor: pointer;
       line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .answer-item {
       display: flex;
@@ -698,9 +793,9 @@ function getCreatePage() {
       margin-bottom: 10px;
     }
     .answer-item input[type="radio"] {
-      width: 18px;
-      height: 18px;
-      accent-color: var(--primary);
+      width: 24px;
+      height: 24px;
+      accent-color: var(--primary-500);
     }
     .answer-item input[type="text"] {
       flex: 1;
@@ -708,43 +803,49 @@ function getCreatePage() {
     .answer-item .remove-answer {
       background: none;
       border: none;
-      color: var(--text-secondary);
+      color: var(--gray-400);
       cursor: pointer;
       padding: 4px;
-      font-size: 18px;
+      font-size: 24px;
     }
     .answer-item .remove-answer:hover {
       color: var(--error);
     }
     .add-btn {
-      background: var(--bg);
-      border: 1px dashed var(--border);
-      color: var(--text-secondary);
+      background: var(--white);
+      border: 2px dashed var(--gray-300);
+      color: var(--gray-600);
       width: 100%;
       padding: 12px;
       margin-top: 8px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      cursor: pointer;
     }
     .add-btn:hover {
-      border-color: var(--primary);
-      color: var(--primary);
+      border-color: var(--primary-500);
+      color: var(--primary-500);
     }
     .add-question-btn {
       width: 100%;
       padding: 16px;
-      margin-bottom: 16px;
-      background: var(--surface);
-      border: 1px dashed var(--border);
-      color: var(--text-secondary);
+      margin-bottom: 24px;
+      background: var(--white);
+      border: 2px dashed var(--gray-300);
+      color: var(--gray-600);
+      border-radius: var(--radius-md);
+      font-size: 18px;
+      font-weight: 600;
     }
     .add-question-btn:hover {
-      border-color: var(--primary);
-      color: var(--primary);
+      border-color: var(--primary-500);
+      color: var(--primary-500);
     }
     .submit-btn {
       width: 100%;
-      padding: 16px;
-      font-size: 16px;
-      font-weight: 600;
+      padding: 20px;
+      font-size: 20px;
+      font-weight: 700;
     }
     .modal {
       display: none;
@@ -760,36 +861,38 @@ function getCreatePage() {
       display: flex;
     }
     .modal-content {
-      background: var(--surface);
-      border-radius: var(--radius);
+      background: var(--white);
+      border-radius: var(--radius-lg);
       padding: 32px;
       max-width: 400px;
       width: 100%;
       text-align: center;
+      box-shadow: var(--shadow-xl);
+      border: 1px solid var(--gray-200);
     }
     .modal-icon {
       font-size: 48px;
       margin-bottom: 16px;
     }
     .modal-title {
-      font-size: 20px;
-      font-weight: 600;
+      font-size: 24px;
+      font-weight: 700;
       margin-bottom: 8px;
     }
     .modal-desc {
-      color: var(--text-secondary);
+      color: var(--gray-600);
       margin-bottom: 24px;
-      font-size: 14px;
+      font-size: 16px;
     }
     .quiz-url {
-      background: var(--bg);
+      background: var(--gray-50);
       padding: 12px 16px;
       border-radius: 8px;
-      font-family: monospace;
+      font-family: var(--font-mono);
       font-size: 14px;
       word-break: break-all;
       margin-bottom: 16px;
-      border: 1px solid var(--border);
+      border: 1px solid var(--gray-300);
     }
   </style>
 </head>
@@ -801,8 +904,8 @@ function getCreatePage() {
       <span style="width: 60px;"></span>
     </div>
 
-    <div class="card" style="margin-bottom: 24px;">
-      <div class="section-title">기본 정보</div>
+    <div class="card static" style="margin-bottom: 24px;">
+      <div class="section-title" style="margin-top:0">기본 정보</div>
       <div class="form-group">
         <label>퀴즈 제목</label>
         <input type="text" class="input" id="quizTitle" placeholder="예: 역사 상식 퀴즈">
@@ -819,7 +922,7 @@ function getCreatePage() {
     <div class="section-title">문제 목록</div>
     <div id="questionsContainer"></div>
 
-    <button class="btn add-question-btn" onclick="addQuestion()">+ 문제 추가</button>
+    <button class="btn add-question-btn" onclick="addQuestion()">+ 문제 추가하기</button>
     <button class="btn btn-primary submit-btn" onclick="submitQuiz()" id="submitBtn">퀴즈 생성하기</button>
   </div>
 
@@ -868,7 +971,7 @@ function getCreatePage() {
       questionCount++;
       const container = document.getElementById('questionsContainer');
       const html = \`
-        <div class="question-card" id="question-\${questionCount}">
+        <div class="card static question-card" id="question-\${questionCount}">
           <div class="question-header">
             <span class="question-num">문제 \${questionCount}</span>
             <button class="delete-btn" onclick="deleteQuestion(\${questionCount})">삭제</button>
@@ -1085,178 +1188,207 @@ function getQuizPage(quiz, quizId) {
   ${quiz.thumbnail ? `<meta property="og:image" content="${escapeHtml(quiz.thumbnail)}">` : ''}
   <style>${baseStyles}
     .intro {
-      min-height: 100vh;
+      min-height: 90vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: var(--space-lg);
     }
     .intro-card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      padding: 40px 32px;
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--gray-200);
+      padding: 48px 32px;
       text-align: center;
-      max-width: 400px;
+      max-width: 480px;
       width: 100%;
+      box-shadow: var(--shadow-lg);
     }
     .intro-card img {
       max-width: 100%;
-      max-height: 200px;
-      border-radius: 8px;
-      margin-bottom: 24px;
+      max-height: 240px;
+      border-radius: 16px;
+      margin-bottom: var(--space-xl);
+      border: 1px solid var(--gray-200);
     }
     .intro-card h1 {
-      font-size: 24px;
-      margin-bottom: 8px;
+      font-size: var(--text-h3);
+      font-weight: 700;
+      margin-bottom: 12px;
     }
     .intro-card .info {
-      color: var(--text-secondary);
-      margin-bottom: 32px;
+      color: var(--gray-600);
+      margin-bottom: var(--space-xl);
+      font-size: var(--text-body);
     }
     .intro-card .start-btn {
       width: 100%;
-      padding: 16px;
-      font-size: 16px;
-      font-weight: 600;
+      padding: 20px;
+      font-size: 20px;
+      font-weight: 700;
     }
     .quiz-view {
       display: none;
-      padding: 24px 16px;
     }
     .progress {
-      height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      margin-bottom: 24px;
+      height: 8px;
+      background: var(--gray-200);
+      border-radius: 100px;
+      margin-bottom: var(--space-xl);
       overflow: hidden;
+      margin-top: var(--space-xl);
     }
     .progress-bar {
       height: 100%;
-      background: var(--primary);
-      transition: width 0.3s;
+      background: var(--primary-500);
+      transition: width 0.3s ease;
     }
     .q-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: var(--space-xl);
     }
     .q-num {
-      font-size: 13px;
-      color: var(--primary);
-      font-weight: 600;
-      margin-bottom: 12px;
+      font-size: var(--text-h5);
+      color: var(--primary-500);
+      font-weight: 700;
+      margin-bottom: var(--space-md);
     }
     .q-text {
-      font-size: 18px;
-      font-weight: 500;
-      margin-bottom: 20px;
-      line-height: 1.5;
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 32px;
+      line-height: 1.4;
+      word-break: keep-all;
     }
     .q-images {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 20px;
+      gap: 12px;
+      margin-bottom: 32px;
     }
     .q-images img {
-      max-height: 200px;
-      border-radius: 8px;
+      max-height: 240px;
+      border-radius: 12px;
       cursor: pointer;
+      border: 1px solid var(--gray-200);
+      transition: transform 0.2s;
+    }
+    .q-images img:hover {
+      transform: scale(1.02);
     }
     .options {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
     .option-btn {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      padding: 14px 16px;
-      border-radius: 8px;
+      background: var(--white);
+      border: 2px solid var(--gray-200);
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
       text-align: left;
-      font-size: 15px;
+      font-size: 18px;
+      font-family: var(--font-primary);
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
     }
     .option-btn:hover {
-      border-color: var(--primary);
+      border-color: var(--primary-500);
+      background: var(--primary-50);
+      transform: translateY(-2px);
     }
     .option-btn.selected {
-      background: var(--primary);
-      border-color: var(--primary);
+      background: var(--primary-500);
+      border-color: var(--primary-500);
       color: white;
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+      transform: translateY(-4px);
     }
     .nav-btns {
       display: flex;
       justify-content: space-between;
-      margin-top: 24px;
-      gap: 12px;
+      margin-top: 32px;
+      gap: 16px;
+      padding-bottom: 48px;
     }
     .nav-btns .btn {
       flex: 1;
+      padding: 16px;
+      font-size: 18px;
     }
     .result {
       display: none;
-      min-height: 100vh;
-      padding: 24px;
-    }
-    .result-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 40px 32px;
-      max-width: 400px;
-      margin: 0 auto;
+      min-height: 90vh;
+      padding: var(--space-xl) 0;
       text-align: center;
     }
+    .result-card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-lg);
+      padding: 48px 32px;
+      max-width: 500px;
+      margin: 0 auto;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+    }
     .result-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
+      font-size: 64px;
+      margin-bottom: 24px;
     }
     .result-title {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 24px;
+      font-size: var(--text-h3);
+      font-weight: 700;
+      margin-bottom: 32px;
     }
     .score-display {
-      font-size: 48px;
-      font-weight: 700;
-      color: var(--primary);
+      font-size: 64px;
+      font-weight: 800;
+      color: var(--primary-500);
       margin-bottom: 8px;
+      line-height: 1;
     }
     .score-detail {
-      color: var(--text-secondary);
-      margin-bottom: 24px;
+      color: var(--gray-600);
+      font-size: var(--text-body);
+      margin-bottom: 32px;
     }
     .rank-badge {
       display: inline-block;
-      background: var(--primary);
+      background: var(--gray-900);
       color: white;
-      padding: 10px 24px;
+      padding: 12px 32px;
       border-radius: 100px;
-      font-weight: 600;
-      margin-bottom: 32px;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 40px;
     }
     .share-box {
-      border-top: 1px solid var(--border);
-      padding-top: 24px;
+      border-top: 1px solid var(--gray-200);
+      padding-top: 32px;
     }
     .share-box h4 {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
     }
     .share-url {
-      background: var(--bg);
-      padding: 12px;
-      border-radius: 8px;
-      font-family: monospace;
-      font-size: 13px;
-      margin-bottom: 12px;
+      background: var(--gray-50);
+      padding: 16px;
+      border-radius: 12px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      margin-bottom: 16px;
       word-break: break-all;
-      border: 1px solid var(--border);
+      border: 1px solid var(--gray-300);
+      color: var(--gray-600);
     }
     .img-modal {
       display: none;
@@ -1274,13 +1406,14 @@ function getQuizPage(quiz, quizId) {
     .img-modal img {
       max-width: 100%;
       max-height: 100%;
+      border-radius: 8px;
     }
     .img-modal .close {
       position: absolute;
-      top: 16px;
-      right: 20px;
+      top: 20px;
+      right: 24px;
       color: white;
-      font-size: 32px;
+      font-size: 40px;
       cursor: pointer;
     }
   </style>
@@ -1369,7 +1502,7 @@ function getQuizPage(quiz, quizId) {
       q.answers.forEach((ans, i) => {
         const btn = document.createElement('button');
         btn.className = 'option-btn' + (answers[idx] === i ? ' selected' : '');
-        btn.textContent = (i + 1) + '. ' + ans;
+        btn.innerHTML = '<span style="margin-right: 12px; color: var(--primary-500); font-weight:bold;">' + (i + 1) + '</span>' + '<span>' + ans + '</span>';
         btn.onclick = () => selectAnswer(i);
         optDiv.appendChild(btn);
       });
