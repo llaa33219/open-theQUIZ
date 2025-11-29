@@ -128,7 +128,6 @@ export function getCreatePage() {
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      font-size: 12px;
       font-weight: 600;
       display: flex;
       align-items: center;
@@ -145,7 +144,7 @@ export function getCreatePage() {
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      font-size: 14px;
+      font-size: 24px;
       cursor: pointer;
       line-height: 1;
       display: flex;
@@ -299,7 +298,7 @@ export function getCreatePage() {
       <div class="modal-desc">아래 링크를 복사하여 공유할 수 있습니다.</div>
       <div class="quiz-url" id="quizUrl"></div>
       <button class="btn btn-primary" onclick="copyUrl()" style="width: 100%;">링크 복사하기</button>
-      <button class="btn btn-secondary" onclick="closeModal()" style="width: 100%; margin-top: 14px;">닫기</button>
+      <button class=".image-item .img-num" onclick="closeModal()" style="width: 100%; margin-top: 14px;">닫기</button>
     </div>
   </div>
 
