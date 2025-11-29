@@ -294,7 +294,7 @@ export function getCreatePage() {
   <div class="modal" id="successModal">
     <div class="modal-content">
       <div class="modal-icon">✔️</div>
-      <div class="modal-title">퀴즈가 정상적으로 생성되었습니다.</div>
+      <div class="modal-title">퀴즈가 정상적으로<br>생성되었습니다.</div>
       <div class="modal-desc">아래 링크를 복사하여 공유할 수 있습니다.</div>
       <div class="quiz-url" id="quizUrl"></div>
       <button class="btn btn-primary" onclick="copyUrl()" style="width: 100%;">링크 복사하기</button>
