@@ -367,9 +367,12 @@ export function getLangSelectorStyles() {
       font-size: 14px;
       cursor: pointer;
       box-shadow: var(--shadow-sm);
+      transition: all 0.3s;
     }
     .lang-selector select:hover {
       border-color: var(--primary-500);
+      box-shadow: var(--shadow-xs);
+      transform: translateY(-6px);
     }
   `;
 }
