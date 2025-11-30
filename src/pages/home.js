@@ -1,14 +1,18 @@
 import { baseStyles } from '../styles.js';
+import { translations, languages, defaultLang, getLangSelectorStyles, getLangScript } from '../i18n.js';
 
-export function getHomePage() {
+export function getHomePage(lang = defaultLang) {
+  const t = translations[lang] || translations[defaultLang];
+  
   return `<!DOCTYPE html>
-<html lang="ko">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="https://img.bloupla.net/XSoiB9bU?raw=1" type="image/png">
   <title>open-theQUIZ</title>
   <style>${baseStyles}
+    ${getLangSelectorStyles()}
     .hero {
         min-height: 80vh;
         display: flex;
@@ -70,14 +74,24 @@ export function getHomePage() {
   </style>
 </head>
 <body>
+  <div class="lang-selector">
+    <select id="langSelect" onchange="changeLang(this.value)">
+      ${languages.map(l => `<option value="${l.code}" ${l.code === lang ? 'selected' : ''}>${l.flag} ${l.name}</option>`).join('')}
+    </select>
+  </div>
+
   <div class="hero">
     <img class="hero-img" src="https://img.bloupla.net/XSoiB9bU?raw=1">
     <h1 class="hero-title">open-theQUIZ</h1>
-    <p class="hero-subtitle">퀴즈 공유 사이트</p>
-    <a href="/create" class="btn btn-primary" style="font-size: 24px; padding: 16px 48px;">
-      퀴즈 만들기
+    <p class="hero-subtitle">${t.heroSubtitle}</p>
+    <a href="/create?lang=${lang}" class="btn btn-primary" style="font-size: 24px; padding: 16px 48px;">
+      ${t.createQuiz}
     </a>
   </div>
+
+  <script>
+    ${getLangScript()}
+  </script>
 </body>
 </html>`;
 }

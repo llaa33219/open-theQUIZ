@@ -1,18 +1,23 @@
 import { baseStyles } from '../styles.js';
 import { escapeHtml, safeJsonStringify } from '../utils.js';
+import { translations, languages, defaultLang, getLangSelectorStyles, getLangScript } from '../i18n.js';
 
-export function getQuizPage(quiz, quizId) {
+export function getQuizPage(quiz, quizId, lang = defaultLang) {
+  const t = translations[lang] || translations[defaultLang];
+  const totalQuestionsText = t.totalQuestions.replace('{count}', quiz.questions.length);
+  
   return `<!DOCTYPE html>
-<html lang="ko">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="https://img.bloupla.net/XSoiB9bU?raw=1" type="image/png">
   <title>${escapeHtml(quiz.title)} - open-theQUIZ</title>
   <meta property="og:title" content="${escapeHtml(quiz.title)}">
-  <meta property="og:description" content="지금 바로 퀴즈에 도전해보세요!">
+  <meta property="og:description" content="${t.ogDescription}">
   ${quiz.thumbnail ? `<meta property="og:image" content="${escapeHtml(quiz.thumbnail)}">` : ''}
   <style>${baseStyles}
+    ${getLangSelectorStyles()}
     .intro {
       min-height: 90vh;
       display: flex;
@@ -248,12 +253,18 @@ export function getQuizPage(quiz, quizId) {
   </style>
 </head>
 <body>
+  <div class="lang-selector">
+    <select id="langSelect" onchange="changeLang(this.value)">
+      ${languages.map(l => `<option value="${l.code}" ${l.code === lang ? 'selected' : ''}>${l.flag} ${l.name}</option>`).join('')}
+    </select>
+  </div>
+
   <div class="intro" id="introScreen">
     <div class="intro-card">
       ${quiz.thumbnail ? `<img src="${escapeHtml(quiz.thumbnail)}" alt="">` : ''}
       <h1>${escapeHtml(quiz.title)}</h1>
-      <p class="info">총 ${quiz.questions.length}문제</p>
-      <button class="btn btn-primary start-btn" onclick="startQuiz()">시작하기</button>
+      <p class="info">${totalQuestionsText}</p>
+      <button class="btn btn-primary start-btn" onclick="startQuiz()">${t.start}</button>
     </div>
   </div>
 
@@ -268,24 +279,24 @@ export function getQuizPage(quiz, quizId) {
       <div class="options" id="options"></div>
     </div>
     <div class="nav-btns">
-      <button class="btn btn-secondary" id="prevBtn" onclick="prevQ()">이전</button>
-      <button class="btn btn-primary" id="nextBtn" onclick="nextQ()">다음</button>
-      <button class="btn btn-primary" id="submitBtn" onclick="submitQuiz()" style="display:none;">제출하기</button>
+      <button class="btn btn-secondary" id="prevBtn" onclick="prevQ()">${t.previous}</button>
+      <button class="btn btn-primary" id="nextBtn" onclick="nextQ()">${t.next}</button>
+      <button class="btn btn-primary" id="submitBtn" onclick="submitQuiz()" style="display:none;">${t.submit}</button>
     </div>
   </div>
 
   <div class="result" id="resultScreen">
     <div class="result-card">
       <div class="result-icon">🎉</div>
-      <div class="result-title">퀴즈 완료!</div>
+      <div class="result-title">${t.quizComplete}</div>
       <div class="score-display" id="score"></div>
       <div class="score-detail" id="scoreDetail"></div>
       <div class="rank-badge" id="rank"></div>
       <div class="share-box">
-        <h4>이 퀴즈 공유하기</h4>
+        <h4>${t.shareQuiz}</h4>
         <div class="share-url" id="shareUrl"></div>
-        <button class="btn btn-primary" onclick="copyUrl()" style="width: 100%;">링크 복사</button>
-        <button class="btn btn-secondary" onclick="location.href='/create'" style="width: 100%; margin-top: 14px;">퀴즈 직접 만들어보기</button>
+        <button class="btn btn-primary" onclick="copyUrl()" style="width: 100%;">${t.copyLink}</button>
+        <button class="btn btn-secondary" onclick="location.href='/create?lang=${lang}'" style="width: 100%; margin-top: 14px;">${t.makeYourOwn}</button>
       </div>
     </div>
   </div>
@@ -296,6 +307,17 @@ export function getQuizPage(quiz, quizId) {
   </div>
 
   <script>
+    ${getLangScript()}
+    
+    const i18n = {
+      questionNum: ${JSON.stringify(t.questionNum)},
+      unansweredWarning: ${JSON.stringify(t.unansweredWarning)},
+      submitError: ${JSON.stringify(t.submitError)},
+      scoreDetail: ${JSON.stringify(t.scoreDetail)},
+      topPercent: ${JSON.stringify(t.topPercent)},
+      linkCopied: ${JSON.stringify(t.linkCopied)}
+    };
+
     const quiz = ${safeJsonStringify({ ...quiz, questions: quiz.questions.map(q => ({ ...q, correctAnswer: undefined })) })};
     const quizId = ${safeJsonStringify(quizId)};
     let current = 0;
@@ -313,7 +335,7 @@ export function getQuizPage(quiz, quizId) {
       const total = quiz.questions.length;
 
       document.getElementById('progressBar').style.width = ((idx + 1) / total * 100) + '%';
-      document.getElementById('qNum').textContent = '문제 ' + (idx + 1) + ' / ' + total;
+      document.getElementById('qNum').textContent = i18n.questionNum + ' ' + (idx + 1) + ' / ' + total;
       document.getElementById('qText').textContent = q.text;
 
       const imgDiv = document.getElementById('qImages');
@@ -362,7 +384,7 @@ export function getQuizPage(quiz, quizId) {
     async function submitQuiz() {
       const empty = answers.findIndex(a => a === null);
       if (empty !== -1) {
-        if (!confirm('아직 답하지 않은 문제가 있습니다. 제출하시겠습니까?')) {
+        if (!confirm(i18n.unansweredWarning)) {
           showQ(empty);
           return;
         }
@@ -380,17 +402,17 @@ export function getQuizPage(quiz, quizId) {
           document.getElementById('quizScreen').style.display = 'none';
           document.getElementById('resultScreen').style.display = 'block';
           document.getElementById('score').textContent = data.score + '/' + data.total;
-          document.getElementById('scoreDetail').textContent = data.total + '문제 중 ' + data.score + '문제 정답';
-          document.getElementById('rank').textContent = '상위 ' + data.percentile + '%';
+          document.getElementById('scoreDetail').textContent = i18n.scoreDetail.replace('{total}', data.total).replace('{score}', data.score);
+          document.getElementById('rank').textContent = i18n.topPercent.replace('{percent}', data.percentile);
           document.getElementById('shareUrl').textContent = window.location.href;
         }
       } catch (err) {
-        alert('제출 중 오류가 발생했습니다.');
+        alert(i18n.submitError);
       }
     }
 
     function copyUrl() {
-      navigator.clipboard.writeText(window.location.href).then(() => alert('링크가 복사되었습니다!'));
+      navigator.clipboard.writeText(window.location.href).then(() => alert(i18n.linkCopied));
     }
 
     function openModal(src) {

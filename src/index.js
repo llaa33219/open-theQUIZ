@@ -1,10 +1,18 @@
 import { createQuiz, getQuiz, uploadImage, submitQuiz, getStats } from './api.js';
 import { get404Page, getHomePage, getCreatePage, getQuizPage } from './pages/index.js';
+import { defaultLang, languages } from './i18n.js';
+
+function getLangFromRequest(url) {
+  const lang = url.searchParams.get('lang');
+  const validLangs = languages.map(l => l.code);
+  return validLangs.includes(lang) ? lang : defaultLang;
+}
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
+    const lang = getLangFromRequest(url);
 
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
@@ -19,13 +27,13 @@ export default {
     try {
       // 정적 페이지
       if (path === '/' || path === '/index.html') {
-        return new Response(getHomePage(), {
+        return new Response(getHomePage(lang), {
           headers: { 'Content-Type': 'text/html; charset=utf-8' },
         });
       }
 
       if (path === '/create') {
-        return new Response(getCreatePage(), {
+        return new Response(getCreatePage(lang), {
           headers: { 'Content-Type': 'text/html; charset=utf-8' },
         });
       }
@@ -78,17 +86,17 @@ export default {
         const quizId = quizMatch[1];
         const quiz = await env.QUIZ_KV.get(`quiz:${quizId}`, 'json');
         if (!quiz) {
-          return new Response(get404Page(), {
+          return new Response(get404Page(lang), {
             status: 404,
             headers: { 'Content-Type': 'text/html; charset=utf-8' },
           });
         }
-        return new Response(getQuizPage(quiz, quizId), {
+        return new Response(getQuizPage(quiz, quizId, lang), {
           headers: { 'Content-Type': 'text/html; charset=utf-8' },
         });
       }
 
-      return new Response(get404Page(), {
+      return new Response(get404Page(lang), {
         status: 404,
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       });

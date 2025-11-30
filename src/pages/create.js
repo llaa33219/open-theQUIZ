@@ -1,14 +1,18 @@
 import { baseStyles } from '../styles.js';
+import { translations, languages, defaultLang, getLangSelectorStyles, getLangScript } from '../i18n.js';
 
-export function getCreatePage() {
+export function getCreatePage(lang = defaultLang) {
+  const t = translations[lang] || translations[defaultLang];
+  
   return `<!DOCTYPE html>
-<html lang="ko">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="https://img.bloupla.net/XSoiB9bU?raw=1" type="image/png">
-  <title>퀴즈 만들기 - open-theQUIZ</title>
+  <title>${t.createTitle} - open-theQUIZ</title>
   <style>${baseStyles}
+    ${getLangSelectorStyles()}
     .header {
       display: flex;
       align-items: center;
@@ -262,47 +266,79 @@ export function getCreatePage() {
   </style>
 </head>
 <body>
+  <div class="lang-selector">
+    <select id="langSelect" onchange="changeLang(this.value)">
+      ${languages.map(l => `<option value="${l.code}" ${l.code === lang ? 'selected' : ''}>${l.flag} ${l.name}</option>`).join('')}
+    </select>
+  </div>
+
   <div class="container">
     <div class="header">
-      <a href="/" class="back-link">← 홈으로</a>
-      <span class="header-title">퀴즈 만들기</span>
+      <a href="/?lang=${lang}" class="back-link">${t.backToHome}</a>
+      <span class="header-title">${t.createTitle}</span>
       <span style="width: 60px;"></span>
     </div>
 
     <div class="card static" style="margin-bottom: 24px;">
-      <div class="section-title" style="margin-top:0">기본 정보</div>
+      <div class="section-title" style="margin-top:0">${t.basicInfo}</div>
       <div class="form-group">
-        <label>퀴즈 제목</label>
-        <input type="text" class="input" id="quizTitle" placeholder="예: 자바스크립트 문법 맞추기">
+        <label>${t.quizTitle}</label>
+        <input type="text" class="input" id="quizTitle" placeholder="${t.quizTitlePlaceholder}">
       </div>
       <div class="form-group" style="margin-bottom: 0;">
-        <label>썸네일 이미지 (선택)</label>
+        <label>${t.thumbnailOptional}</label>
         <div class="thumbnail-upload" id="thumbnailUpload">
-          <span>클릭하여 이미지 업로드</span>
+          <span>${t.clickToUpload}</span>
         </div>
         <input type="file" id="thumbnailInput" accept="image/*" style="display: none;">
       </div>
     </div>
 
-    <div class="section-title">문제 목록</div>
+    <div class="section-title">${t.questionList}</div>
     <div id="questionsContainer"></div>
 
-    <button class="btn add-question-btn" onclick="addQuestion()">+ 문제 추가하기</button>
-    <button class="btn btn-primary submit-btn" onclick="submitQuiz()" id="submitBtn">퀴즈 생성하기</button>
+    <button class="btn add-question-btn" onclick="addQuestion()">${t.addQuestion}</button>
+    <button class="btn btn-primary submit-btn" onclick="submitQuiz()" id="submitBtn">${t.createQuizBtn}</button>
   </div>
 
   <div class="modal" id="successModal" onclick="closeModal(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
       <div class="modal-icon">✔️</div>
-      <div class="modal-title">퀴즈가 정상적으로<br>생성되었습니다.</div>
-      <div class="modal-desc">아래 링크를 복사하여 공유할 수 있습니다.</div>
+      <div class="modal-title">${t.quizCreatedSuccess.replace('\n', '<br>')}</div>
+      <div class="modal-desc">${t.shareDescription}</div>
       <div class="quiz-url" id="quizUrl"></div>
-      <button class="btn btn-primary" onclick="copyUrl()" style="width: 100%;">링크 복사하기</button>
-      <button class=".image-item .img-num" onclick="closeModal()" style="width: 100%; margin-top: 14px;">닫기</button>
+      <button class="btn btn-primary" onclick="copyUrl()" style="width: 100%;">${t.copyLink}</button>
+      <button class="btn btn-secondary" onclick="closeModal()" style="width: 100%; margin-top: 14px;">${t.close}</button>
     </div>
   </div>
 
   <script>
+    ${getLangScript()}
+    
+    const i18n = {
+      questionNum: ${JSON.stringify(t.questionNum)},
+      delete: ${JSON.stringify(t.delete)},
+      questionContent: ${JSON.stringify(t.questionContent)},
+      questionPlaceholder: ${JSON.stringify(t.questionPlaceholder)},
+      imageOptional: ${JSON.stringify(t.imageOptional)},
+      clickToAddImage: ${JSON.stringify(t.clickToAddImage)},
+      answerLabel: ${JSON.stringify(t.answerLabel)},
+      answerPlaceholder: ${JSON.stringify(t.answerPlaceholder)},
+      addAnswer: ${JSON.stringify(t.addAnswer)},
+      minAnswersRequired: ${JSON.stringify(t.minAnswersRequired)},
+      enterQuizTitle: ${JSON.stringify(t.enterQuizTitle)},
+      minOneQuestion: ${JSON.stringify(t.minOneQuestion)},
+      enterAllQuestions: ${JSON.stringify(t.enterAllQuestions)},
+      enterAllAnswers: ${JSON.stringify(t.enterAllAnswers)},
+      minTwoAnswers: ${JSON.stringify(t.minTwoAnswers)},
+      imageUploadFailed: ${JSON.stringify(t.imageUploadFailed)},
+      quizCreateFailed: ${JSON.stringify(t.quizCreateFailed)},
+      creating: ${JSON.stringify(t.creating)},
+      createQuizBtn: ${JSON.stringify(t.createQuizBtn)},
+      linkCopied: ${JSON.stringify(t.linkCopied)},
+      error: ${JSON.stringify(t.error)}
+    };
+
     let questionCount = 0;
     let thumbnailUrl = null;
 
@@ -333,7 +369,7 @@ export function getCreatePage() {
           uploadDiv.classList.add('has-image');
         }
       } catch (err) {
-        alert('이미지 업로드 실패');
+        alert(i18n.imageUploadFailed);
       }
     });
 
@@ -343,34 +379,34 @@ export function getCreatePage() {
       const html = \`
         <div class="card static question-card" id="question-\${questionCount}">
           <div class="question-header">
-            <span class="question-num">문제 \${questionCount}</span>
-            <button class="delete-btn" onclick="deleteQuestion(\${questionCount})">삭제</button>
+            <span class="question-num">\${i18n.questionNum} \${questionCount}</span>
+            <button class="delete-btn" onclick="deleteQuestion(\${questionCount})">\${i18n.delete}</button>
           </div>
           <div class="form-group">
-            <label>문제 내용</label>
-            <textarea class="input question-text" rows="2" placeholder="문제를 입력하세요"></textarea>
+            <label>\${i18n.questionContent}</label>
+            <textarea class="input question-text" rows="2" placeholder="\${i18n.questionPlaceholder}"></textarea>
           </div>
           <div class="form-group">
-            <label>이미지 (선택)</label>
-            <div class="image-area" onclick="triggerImageUpload(\${questionCount})">클릭하여 이미지 추가</div>
+            <label>\${i18n.imageOptional}</label>
+            <div class="image-area" onclick="triggerImageUpload(\${questionCount})">\${i18n.clickToAddImage}</div>
             <input type="file" class="image-input" accept="image/*" multiple style="display: none;" onchange="handleImageUpload(\${questionCount}, this)">
             <div class="images-preview" id="images-\${questionCount}"></div>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
-            <label>답안 (정답을 선택하세요)</label>
+            <label>\${i18n.answerLabel}</label>
             <div class="answers-container" id="answers-\${questionCount}">
               <div class="answer-item">
                 <input type="radio" name="correct-\${questionCount}" value="0" checked>
-                <input type="text" class="input" placeholder="답안 1">
+                <input type="text" class="input" placeholder="\${i18n.answerPlaceholder} 1">
                 <button class="remove-answer" onclick="removeAnswer(this)">×</button>
               </div>
               <div class="answer-item">
                 <input type="radio" name="correct-\${questionCount}" value="1">
-                <input type="text" class="input" placeholder="답안 2">
+                <input type="text" class="input" placeholder="\${i18n.answerPlaceholder} 2">
                 <button class="remove-answer" onclick="removeAnswer(this)">×</button>
               </div>
             </div>
-            <button class="btn add-btn" onclick="addAnswer(\${questionCount})">+ 답안 추가</button>
+            <button class="btn add-btn" onclick="addAnswer(\${questionCount})">\${i18n.addAnswer}</button>
           </div>
         </div>
       \`;
@@ -385,7 +421,7 @@ export function getCreatePage() {
 
     function updateQuestionNumbers() {
       document.querySelectorAll('.question-card').forEach((q, i) => {
-        q.querySelector('.question-num').textContent = '문제 ' + (i + 1);
+        q.querySelector('.question-num').textContent = i18n.questionNum + ' ' + (i + 1);
       });
     }
 
@@ -395,7 +431,7 @@ export function getCreatePage() {
       const html = \`
         <div class="answer-item">
           <input type="radio" name="correct-\${questionId}" value="\${count}">
-          <input type="text" class="input" placeholder="답안 \${count + 1}">
+          <input type="text" class="input" placeholder="\${i18n.answerPlaceholder} \${count + 1}">
           <button class="remove-answer" onclick="removeAnswer(this)">×</button>
         </div>
       \`;
@@ -410,7 +446,7 @@ export function getCreatePage() {
           a.querySelector('input[type="radio"]').value = i;
         });
       } else {
-        alert('최소 2개의 답안이 필요합니다.');
+        alert(i18n.minAnswersRequired);
       }
     }
 
@@ -452,7 +488,7 @@ export function getCreatePage() {
             setupDragAndDrop(questionId);
           }
         } catch (err) {
-          alert('이미지 업로드 실패');
+          alert(i18n.imageUploadFailed);
         }
       }
       input.value = '';
@@ -491,15 +527,15 @@ export function getCreatePage() {
 
     async function submitQuiz() {
       const title = document.getElementById('quizTitle').value.trim();
-      if (!title) { alert('퀴즈 제목을 입력하세요.'); return; }
+      if (!title) { alert(i18n.enterQuizTitle); return; }
 
       const cards = document.querySelectorAll('.question-card');
-      if (cards.length === 0) { alert('최소 1개의 문제가 필요합니다.'); return; }
+      if (cards.length === 0) { alert(i18n.minOneQuestion); return; }
 
       const questions = [];
       for (const card of cards) {
         const text = card.querySelector('.question-text').value.trim();
-        if (!text) { alert('모든 문제의 내용을 입력하세요.'); return; }
+        if (!text) { alert(i18n.enterAllQuestions); return; }
 
         const images = [];
         card.querySelectorAll('.image-item').forEach(img => images.push(img.dataset.url));
@@ -515,15 +551,15 @@ export function getCreatePage() {
           if (items[i].querySelector('input[type="radio"]').checked) correctAnswer = i;
         }
 
-        if (hasEmpty) { alert('모든 답안을 입력하세요.'); return; }
-        if (answers.length < 2) { alert('각 문제에 최소 2개의 답안이 필요합니다.'); return; }
+        if (hasEmpty) { alert(i18n.enterAllAnswers); return; }
+        if (answers.length < 2) { alert(i18n.minTwoAnswers); return; }
 
         questions.push({ text, images, answers, correctAnswer });
       }
 
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
-      btn.textContent = '생성 중...';
+      btn.textContent = i18n.creating;
 
       try {
         const res = await fetch('/api/quiz', {
@@ -536,19 +572,19 @@ export function getCreatePage() {
           document.getElementById('quizUrl').textContent = window.location.origin + '/' + data.quizId;
           document.getElementById('successModal').classList.add('active');
         } else {
-          alert(data.error || '퀴즈 생성 실패');
+          alert(data.error || i18n.quizCreateFailed);
         }
       } catch (err) {
-        alert('오류가 발생했습니다.');
+        alert(i18n.error);
       } finally {
         btn.disabled = false;
-        btn.textContent = '퀴즈 생성하기';
+        btn.textContent = i18n.createQuizBtn;
       }
     }
 
     function copyUrl() {
       navigator.clipboard.writeText(document.getElementById('quizUrl').textContent).then(() => {
-        alert('링크가 복사되었습니다!');
+        alert(i18n.linkCopied);
       });
     }
 
